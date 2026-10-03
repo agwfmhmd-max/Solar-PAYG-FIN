@@ -3,8 +3,8 @@
  *    « User » correspondant dans Supabase (Authentication → Users).
  *  - Client d'authentification SÉPARÉ du client de données : les lectures (équipe, enquête,
  *    hypothèses) continuent d'utiliser la clé anonyme exactement comme avant.
- *  - La session est conservée dans sessionStorage : un rafraîchissement de la page ne déconnecte pas,
- *    mais la fermeture de l'onglet/navigateur impose une nouvelle connexion.
+ *  - La session est conservée de façon PERMANENTE (localStorage) : fermer l'onglet ou le navigateur ne
+ *    déconnecte pas ; le jeton est renouvelé automatiquement. Seul le bouton « Déconnexion » met fin à la session.
  *  - N'altère aucune formule ni aucune autre fonction du site. */
 (function () {
   'use strict';
@@ -42,15 +42,15 @@
   const authEmail = () => String(cfg().AUTH_EMAIL || '').trim();
   const sameEmail = (e) => authEmail() && String(e || '').trim().toLowerCase() === authEmail().toLowerCase();
   const NAME_KEY = 'payg-supervisor-name';
-  const rememberName = (n) => { try { sessionStorage.setItem(NAME_KEY, n); } catch (e) { /* ignore */ } };
-  const savedName = () => { try { return sessionStorage.getItem(NAME_KEY); } catch (e) { return null; } };
+  const rememberName = (n) => { try { localStorage.setItem(NAME_KEY, n); } catch (e) { /* ignore */ } };
+  const savedName = () => { try { return localStorage.getItem(NAME_KEY); } catch (e) { return null; } };
   const unconfigured = () => !authEmail();
 
   function getClient() {
     if (client) return client;
     if (!cfg().SUPABASE_URL || !cfg().SUPABASE_ANON_KEY) return null;
     if (!window.supabase || typeof window.supabase.createClient !== 'function') return null;
-    let store; try { store = window.sessionStorage; } catch (e) { store = undefined; }
+    let store; try { store = window.localStorage; } catch (e) { store = undefined; }
     client = window.supabase.createClient(cfg().SUPABASE_URL, cfg().SUPABASE_ANON_KEY, {
       auth: { storage: store, storageKey: 'payg-supervisor-auth', persistSession: !!store, autoRefreshToken: true, detectSessionInUrl: false }
     });
@@ -129,7 +129,7 @@
   }
   async function logout() {
     try { const c = getClient(); if (c) await c.auth.signOut(); } catch (e) { console.error('[auth-logout]', e); }
-    try { sessionStorage.removeItem('payg-supervisor-auth'); sessionStorage.removeItem(NAME_KEY); } catch (e) { /* ignore */ }
+    try { localStorage.removeItem('payg-supervisor-auth'); localStorage.removeItem(NAME_KEY); } catch (e) { /* ignore */ }
     lock();
   }
 
@@ -142,7 +142,11 @@
       const u = s && s.user && sameEmail(s.user.email) ? byName(savedName()) : null;
       if (u) unlock(u);
       else if (s) { await c.auth.signOut(); } // session valide mais superviseur inconnu : on redemande le nom
-    } catch (e) { console.error('[auth-restore]', e); }
+    } catch (e) {
+      console.error('[auth-restore]', e);
+      // base injoignable au démarrage (hors connexion) : on garde le superviseur connecté tant qu'il ne s'est pas déconnecté
+      try { const u = localStorage.getItem('payg-supervisor-auth') ? byName(savedName()) : null; if (u) unlock(u); } catch (e2) { /* ignore */ }
+    }
     c.auth.onAuthStateChange((evt, session) => { if (evt === 'SIGNED_OUT' && current) lock(); });
   }
 
