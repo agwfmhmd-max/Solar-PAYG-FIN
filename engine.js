@@ -200,12 +200,13 @@
 
   // type: hypothese | estimation | enquete | externe | simulation
   const GLOBAL_DEFAULTS = {
-    kit1_cash:     { v: 80000,  unit: 'MRU', fr: 'Prix comptant de référence – Kit éclairage', ar: 'السعر النقدي المرجعي – نظام الإنارة', type: 'hypothese', source: 'Prix indicatif affiché dans le questionnaire ; à remplacer par un devis fournisseur' },
-    kit2_cash:     { v: 180000, unit: 'MRU', fr: 'Prix comptant de référence – Kit familial', ar: 'السعر النقدي المرجعي – النظام العائلي', type: 'hypothese', source: 'Prix indicatif affiché dans le questionnaire ; à remplacer par un devis fournisseur' },
-    kit3_cash:     { v: 350000, unit: 'MRU', fr: 'Prix comptant de référence – Kit productif', ar: 'السعر النقدي المرجعي – النظام الإنتاجي', type: 'hypothese', source: 'Prix indicatif affiché dans le questionnaire ; à remplacer par un devis fournisseur' },
+    kit1_cash:     { v: 8500,   unit: 'MRU', fr: 'Prix comptant de référence – Kit éclairage', ar: 'السعر النقدي المرجعي – نظام الإنارة', type: 'hypothese', source: 'Ordre de grandeur marché : kit d’entrée de gamme (panneau 80 W, 4 lampes, chargeur) ≈ 200 USD ≈ 8 000-9 000 MRU (1 USD ≈ 40 MRU, juil. 2026) ; à remplacer par un devis fournisseur (droits et TVA inclus)' },
+    kit2_cash:     { v: 20000,  unit: 'MRU', fr: 'Prix comptant de référence – Kit familial', ar: 'السعر النقدي المرجعي – النظام العائلي', type: 'hypothese', source: 'Ordre de grandeur marché : système familial avec TV et ventilateur ≈ 450-500 USD (réf. Sun King HomePlus Max + TV 43" : 62 000 KES au Kenya ≈ 19 000 MRU) ; à remplacer par un devis fournisseur' },
+    kit3_cash:     { v: 55000,  unit: 'MRU', fr: 'Prix comptant de référence – Kit productif', ar: 'السعر النقدي المرجعي – النظام الإنتاجي', type: 'hypothese', source: 'Ordre de grandeur marché : congélateur solaire + panneaux + batterie pour boutique ≈ 1 300-1 500 USD ≈ 52 000-60 000 MRU ; à remplacer par un devis fournisseur' },
     install_pct:   { v: 5,      unit: '% du prix comptant', fr: 'Installation', ar: 'التركيب', type: 'hypothese', source: 'Hypothèse équipe — à valider (devis installateur)' },
-    iot_cost:      { v: 3500,   unit: 'MRU / kit', fr: 'Équipement de paiement / IoT (module de verrouillage)', ar: 'جهاز الدفع / إنترنت الأشياء', type: 'hypothese', source: 'Hypothèse équipe — à valider (devis fournisseur IoT)' },
+    iot_cost:      { v: 600,    unit: 'MRU / kit', fr: 'Équipement de paiement / IoT (module de verrouillage)', ar: 'جهاز الدفع / إنترنت الأشياء', type: 'hypothese', source: 'Ordre de grandeur : module GSM de verrouillage PAYG ≈ 15 USD ≈ 600 MRU — à valider (devis fournisseur IoT)' },
     deposit_pct:   { v: 20,     unit: '% du prix total', fr: 'Acompte initial', ar: 'الدفعة المقدمة', type: 'hypothese', source: 'Hypothèse — à comparer à la question « acompte » de l’enquête' },
+    tax_rate:      { v: 25,     unit: '% du bénéfice imposable', fr: 'Impôt sur le bénéfice (IS)', ar: 'الضريبة على الأرباح', type: 'hypothese', source: 'Taux normal de l’IS en Mauritanie (CGI, loi 2019-018) ; déficits reportés sur les années suivantes (simplification) ; impôt minimum forfaitaire non appliqué — à valider avec un expert-comptable' },
     funding_rate:  { v: 12,     unit: '% / an', fr: 'Coût de financement (refinancement)', ar: 'تكلفة التمويل', type: 'hypothese', source: 'Hypothèse équipe — à remplacer par l’offre d’une banque / bailleur' },
     commission_pct:{ v: 1,      unit: '% des encaissements', fr: 'Commission du paiement mobile', ar: 'عمولة الدفع عبر الهاتف', type: 'hypothese', source: 'Hypothèse — à remplacer par les conditions réelles des opérateurs' },
     servicing:     { v: 150,    unit: 'MRU / client / mois', fr: 'Coût de suivi client (SAV, recouvrement, SMS)', ar: 'تكلفة متابعة العميل', type: 'hypothese', source: 'Hypothèse équipe' },
@@ -216,22 +217,22 @@
     freq:          { v: 'monthly', unit: '', fr: 'Fréquence de paiement du modèle', ar: 'وتيرة الدفع في النموذج', type: 'hypothese', source: 'Par défaut ; remplacée par la fréquence préférée de l’enquête si elle est disponible' }
   };
 
-  // Investissement initial (A) et coûts fixes annuels (B) — totaux = ceux du prototype d'origine, détaillés
+  // Investissement initial (A) et coûts fixes annuels (B) — exprimés en NOUVELLE OUGUIYA (MRU, après redénomination : un zéro retiré par rapport à l'ancien prototype)
   const CAPEX_ITEMS = [
-    ['capex_platform', 'Développement de la plateforme', 'تطوير المنصة', 3000000],
-    ['capex_it',       'Matériel informatique et IoT', 'معدات معلوماتية', 1500000],
-    ['capex_vehicles', 'Véhicules', 'مركبات', 2500000],
-    ['capex_tools',    'Équipement d’installation', 'معدات التركيب', 1000000],
-    ['capex_launch',   'Lancement commercial', 'الإطلاق التجاري', 2000000],
-    ['capex_stock',    'Stock initial de kits (fonds de roulement)', 'مخزون أولي', 2000000]
+    ['capex_platform', 'Développement de la plateforme', 'تطوير المنصة', 300000],
+    ['capex_it',       'Matériel informatique et IoT', 'معدات معلوماتية', 150000],
+    ['capex_vehicles', 'Véhicules', 'مركبات', 250000],
+    ['capex_tools',    'Équipement d’installation', 'معدات التركيب', 100000],
+    ['capex_launch',   'Lancement commercial', 'الإطلاق التجاري', 200000],
+    ['capex_stock',    'Stock initial de kits (fonds de roulement)', 'مخزون أولي', 200000]
   ];
   const FIXED_ITEMS = [
-    ['fx_salaries', 'Salaires', 'الرواتب', 4800000],
-    ['fx_premises', 'Locaux', 'المقرات', 1200000],
-    ['fx_software', 'Logiciels et hébergement', 'البرمجيات', 600000],
-    ['fx_admin',    'Administration', 'الإدارة', 500000],
-    ['fx_comm',     'Communication', 'التواصل', 500000],
-    ['fx_maint',    'Maintenance', 'الصيانة', 400000]
+    ['fx_salaries', 'Salaires', 'الرواتب', 480000],
+    ['fx_premises', 'Locaux', 'المقرات', 120000],
+    ['fx_software', 'Logiciels et hébergement', 'البرمجيات', 60000],
+    ['fx_admin',    'Administration', 'الإدارة', 50000],
+    ['fx_comm',     'Communication', 'التواصل', 50000],
+    ['fx_maint',    'Maintenance', 'الصيانة', 40000]
   ];
   CAPEX_ITEMS.forEach(([k, fr, ar, v]) => { GLOBAL_DEFAULTS[k] = { v, unit: 'MRU', fr, ar, type: 'hypothese', source: 'Hypothèse équipe (répartition du CAPEX initial du prototype) — à justifier par devis', group: 'capex' }; });
   FIXED_ITEMS.forEach(([k, fr, ar, v]) => { GLOBAL_DEFAULTS[k] = { v, unit: 'MRU / an', fr, ar, type: 'hypothese', source: 'Hypothèse équipe (répartition de l’OPEX annuel du prototype) — à justifier', group: 'fixed' }; });
@@ -250,11 +251,25 @@
     ['discount',   'Taux d’actualisation', 'معدل الخصم', '%']
   ];
   const SCENARIO_DEFAULTS = {
-    prudent:   { clients1: 500,  growth: 0,  cashPrice: 180000, costRatio: 75, tenure: 12, defaultRate: 8,   insRate: 2.5, marginPct: 18, opexMult: 1.1,  grant: 0,       discount: 12 },
-    central:   { clients1: 1000, growth: 10, cashPrice: 180000, costRatio: 70, tenure: 12, defaultRate: 5,   insRate: 2.5, marginPct: 20, opexMult: 1.0,  grant: 0,       discount: 10 },
-    dynamique: { clients1: 1500, growth: 15, cashPrice: 180000, costRatio: 65, tenure: 12, defaultRate: 2.5, insRate: 2.5, marginPct: 22, opexMult: 1.0,  grant: 6000000, discount: 10 }
+    prudent:   { clients1: 500,  growth: 0,  cashPrice: 20000, costRatio: 75, tenure: 12, defaultRate: 8,   insRate: 2.5, marginPct: 18, opexMult: 1.1,  grant: 0,       discount: 12 },
+    central:   { clients1: 1000, growth: 10, cashPrice: 20000, costRatio: 70, tenure: 12, defaultRate: 5,   insRate: 2.5, marginPct: 20, opexMult: 1.0,  grant: 0,       discount: 10 },
+    dynamique: { clients1: 1500, growth: 15, cashPrice: 20000, costRatio: 65, tenure: 12, defaultRate: 2.5, insRate: 2.5, marginPct: 22, opexMult: 1.0,  grant: 600000,  discount: 10 }
   };
   const SCENARIO_NAMES = { prudent: { fr: 'Prudent', ar: 'متحفظ' }, central: { fr: 'Central', ar: 'أساسي' }, dynamique: { fr: 'Dynamique', ar: 'ديناميكي' } };
+
+
+  /* ---------------- 2 bis. Migration : anciennes valeurs (ancienne ouguiya) -> nouvelle ouguiya ----------------
+   * Les états déjà enregistrés (navigateur, base de données, jeux nommés, fichiers importés) peuvent contenir
+   * les anciennes valeurs par défaut (un zéro de trop). Seules les valeurs EXACTEMENT égales aux anciens défauts
+   * sont converties ; toute valeur personnalisée par l'équipe est conservée telle quelle. Fonction idempotente. */
+  const LEGACY_G = { capex_platform: 3000000, capex_it: 1500000, capex_vehicles: 2500000, capex_tools: 1000000, capex_launch: 2000000, capex_stock: 2000000,
+    fx_salaries: 4800000, fx_premises: 1200000, fx_software: 600000, fx_admin: 500000, fx_comm: 500000, fx_maint: 400000 };
+  const LEGACY_GRANT = { dynamique: 6000000 };
+  function migrateLegacy(g, sc) {
+    if (g) Object.keys(LEGACY_G).forEach((k) => { if (g[k] === LEGACY_G[k]) g[k] = GLOBAL_DEFAULTS[k].v; });
+    if (sc) Object.keys(LEGACY_GRANT).forEach((k) => { if (sc[k] && sc[k].grant === LEGACY_GRANT[k]) sc[k].grant = SCENARIO_DEFAULTS[k].grant; });
+    return { g, sc };
+  }
 
   function defaultState() {
     const g = {};
@@ -392,12 +407,20 @@
       yr[y].collections += collections; yr[y].variable += variable; yr[y].fixed += fixed;
       flows[m] = collections - variable - fixed;
     }
+    // Impôt sur le bénéfice : taux × résultat imposable ; les déficits des années précédentes sont reportés (simplification)
+    const taxRate = Math.max(0, (g.tax_rate == null ? 25 : g.tax_rate)) / 100;
+    let lossCarry = 0;
     const years = yr.map((r, i) => {
       const deprec = capex / 5;
       const grossMargin = r.collections - r.variable;
-      const result = grossMargin - r.fixed - deprec;
+      const result = grossMargin - r.fixed - deprec; // résultat avant impôt
+      let taxBase = 0;
+      if (result < 0) lossCarry += -result;
+      else { const used = Math.min(lossCarry, result); lossCarry -= used; taxBase = result - used; }
+      const tax = taxBase * taxRate;
+      const netResult = result - tax;
       const cash = flows.slice(1 + i * 12, 1 + (i + 1) * 12).reduce((a, b) => a + b, 0) + (i === 0 ? flows[0] : 0);
-      return { year: i + 1, clients: r.clients, revenue: r.collections, variable: r.variable, fixed: r.fixed, totalCosts: r.variable + r.fixed, grossMargin, deprec, result, cash };
+      return { year: i + 1, clients: r.clients, revenue: r.collections, variable: r.variable, fixed: r.fixed, totalCosts: r.variable + r.fixed, grossMargin, deprec, result, taxBase, tax, netResult, lossCarry, cash };
     });
 
     const rm = Math.pow(1 + s.discount / 100, 1 / 12) - 1;
@@ -425,6 +448,8 @@
         costs: sum(years.map((y) => y.totalCosts)),
         grossMargin: sum(years.map((y) => y.grossMargin)),
         result: sum(years.map((y) => y.result)),
+        tax: sum(years.map((y) => y.tax)),
+        netResult: sum(years.map((y) => y.netResult)),
         cash: sum(years.map((y) => y.cash))
       }
     };
@@ -499,15 +524,15 @@
     sheets['Hypotheses_modele'] = [['Paramètre', 'Valeur', 'Unité', 'Source', 'Date', 'Type de donnée']].concat(
       assumptionRegister(state, ind, surveyDate).map((r) => [t(r), r.value, r.unit, r.source, r.date, TYPE_LABELS[r.type].fr]));
     sheets['Prix_PAYG'] = [['Scénario', 'Composante', 'MRU']];
-    sheets['Resultats_annuels'] = [['Scénario', 'Année', 'Nouveaux clients', 'Encaissements (CA)', 'Coûts variables', 'Coûts fixes', 'Coûts totaux', 'Marge brute', 'Amortissement', 'Résultat', 'Cash-flow net']];
-    sheets['Indicateurs_financiers'] = [['Scénario', 'VAN (MRU)', 'TRI (%)', 'Payback (mois)', 'Besoin de financement max (MRU)', 'Seuil de rentabilité (clients/an)', 'CA cumulé 5 ans', 'Coûts cumulés 5 ans', 'Résultat cumulé 5 ans', 'Revenu moyen / client', 'Prix PAYG total (assuré)', 'Équivalent mensuel (assuré)']];
+    sheets['Resultats_annuels'] = [['Scénario', 'Année', 'Nouveaux clients', 'Encaissements (CA)', 'Coûts variables', 'Coûts fixes', 'Coûts totaux', 'Marge brute', 'Amortissement', 'Résultat avant impôt', 'Impôt sur le bénéfice', 'Résultat net', 'Cash-flow net', 'Déficits antérieurs imputés', 'Résultat imposable', 'Déficit restant à reporter']];
+    sheets['Indicateurs_financiers'] = [['Scénario', 'VAN (MRU)', 'TRI (%)', 'Payback (mois)', 'Besoin de financement max (MRU)', 'Seuil de rentabilité (clients/an)', 'CA cumulé 5 ans', 'Coûts cumulés 5 ans', 'Résultat avant impôt cumulé 5 ans', 'Impôts cumulés 5 ans', 'Résultat net cumulé 5 ans', 'Revenu moyen / client', 'Prix PAYG total (assuré)', 'Équivalent mensuel (assuré)']];
     ['prudent', 'central', 'dynamique'].forEach((k) => {
       const r = results[k]; if (!r) return;
       const nm = SCENARIO_NAMES[k].fr;
       r.priceInsured.lines.forEach((l) => sheets['Prix_PAYG'].push([nm, l.fr, r0(l.value)]));
       sheets['Prix_PAYG'].push([nm, 'TOTAL PAYG (client assuré)', r0(r.priceInsured.total)]);
-      r.years.forEach((y) => sheets['Resultats_annuels'].push([nm, y.year, r0(y.clients), r0(y.revenue), r0(y.variable), r0(y.fixed), r0(y.totalCosts), r0(y.grossMargin), r0(y.deprec), r0(y.result), r0(y.cash)]));
-      sheets['Indicateurs_financiers'].push([nm, r0(r.npv), r.irr == null ? 'n/d' : +(r.irr * 100).toFixed(1), r.paybackMonths == null ? '> 60' : r.paybackMonths, r0(r.fundingNeed), r.breakEvenClients == null ? 'impossible' : r.breakEvenClients, r0(r.totals.revenue), r0(r.totals.costs), r0(r.totals.result), r0(r.revenuePerClient), r0(r.priceInsured.total), r0(r.priceInsured.monthlyEquivalent)]);
+      r.years.forEach((y) => sheets['Resultats_annuels'].push([nm, y.year, r0(y.clients), r0(y.revenue), r0(y.variable), r0(y.fixed), r0(y.totalCosts), r0(y.grossMargin), r0(y.deprec), r0(y.result), r0(y.tax), r0(y.netResult), r0(y.cash), r0(y.result > 0 ? y.result - y.taxBase : 0), r0(y.taxBase), r0(y.lossCarry)]));
+      sheets['Indicateurs_financiers'].push([nm, r0(r.npv), r.irr == null ? 'n/d' : +(r.irr * 100).toFixed(1), r.paybackMonths == null ? '> 60' : r.paybackMonths, r0(r.fundingNeed), r.breakEvenClients == null ? 'impossible' : r.breakEvenClients, r0(r.totals.revenue), r0(r.totals.costs), r0(r.totals.result), r0(r.totals.tax), r0(r.totals.netResult), r0(r.revenuePerClient), r0(r.priceInsured.total), r0(r.priceInsured.monthlyEquivalent)]);
     });
     return sheets;
   }
@@ -520,7 +545,7 @@
   const API = {
     MODEL_DATE, QUESTION_MATCHERS, BANDS, KITS, GLOBAL_DEFAULTS, CAPEX_ITEMS, FIXED_ITEMS, SCENARIO_FIELDS, SCENARIO_DEFAULTS, SCENARIO_NAMES, TYPE_LABELS,
     defaultState, computeMarketIndicators, distribution, shareAtLeast, priceForCoverage, wilson,
-    buildPrice, priceParams, affordability, suggestTenure, runScenario, demandHypothesis, assumptionRegister, buildExport, toCSV, irr, periodsCount
+    migrateLegacy, buildPrice, priceParams, affordability, suggestTenure, runScenario, demandHypothesis, assumptionRegister, buildExport, toCSV, irr, periodsCount
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.PaygEngine = API;
 })(typeof window !== 'undefined' ? window : globalThis);

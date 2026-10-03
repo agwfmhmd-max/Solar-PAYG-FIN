@@ -29,8 +29,9 @@
 
   /* ---------- 2. Jeux d'hypothèses nommés ---------- */
   const PK = 'payg_hyp_profiles_v1';
-  const readP = () => { try { const o = JSON.parse(localStorage.getItem(PK) || 'null'); if (o && Array.isArray(o.list)) return o; } catch (e) { /* ignore */ } return { list: [], active: null }; };
-  const writeP = (o) => { try { localStorage.setItem(PK, JSON.stringify(o)); return true; } catch (e) { alert(L('Enregistrement impossible (stockage du navigateur indisponible).', 'تعذر الحفظ (تخزين المتصفح غير متاح).')); return false; } };
+  const migP = (o) => { o.list.forEach((x) => { if (x && x.g) E.migrateLegacy(x.g, x.sc); }); return o; }; // anciennes valeurs -> nouvelle ouguiya
+  const readP = () => { try { const o = JSON.parse(localStorage.getItem(PK) || 'null'); if (o && Array.isArray(o.list)) return migP(o); } catch (e) { /* ignore */ } return { list: [], active: null }; };
+  const writeP = (o) => { if (window.HypDB) window.HypDB.saveProfiles(o); try { localStorage.setItem(PK, JSON.stringify(o)); return true; } catch (e) { alert(L('Enregistrement impossible (stockage du navigateur indisponible).', 'تعذر الحفظ (تخزين المتصفح غير متاح).')); return false; } };
   const snap = (s) => JSON.stringify({ g: s.g, sc: s.sc });
   function applyProfile(name) {
     const ns = E.defaultState(), P = readP(), p = name == null ? null : P.list.find((x) => x.name === name);
@@ -69,6 +70,7 @@
     const d = E.defaultState(), g = {}, sc = {};
     Object.keys(d.g).forEach((k) => { const v = x.g[k]; g[k] = k === 'freq' ? (['daily', 'weekly', 'monthly'].includes(v) ? v : d.g.freq) : (typeof v === 'number' && isFinite(v) ? v : d.g[k]); });
     Object.keys(d.sc).forEach((sk) => { sc[sk] = {}; Object.keys(d.sc[sk]).forEach((f) => { const v = (x.sc[sk] || {})[f]; sc[sk][f] = typeof v === 'number' && isFinite(v) ? v : d.sc[sk][f]; }); });
+    E.migrateLegacy(g, sc);
     return { name: x.name.trim().slice(0, 60), saved: typeof x.saved === 'string' ? x.saved : new Date().toISOString(), g, sc };
   }
   function importProfiles() {
@@ -183,7 +185,7 @@
       ['Payback', L('premier mois t où Σ Fᵢ (i ≤ t) ≥ 0', 'أول شهر يصبح فيه المجموع التراكمي ≥ 0'), pb == null ? L('> 60 mois (cumul final ', '> 60 شهرا (التراكمي ') + mru(cum) + ')' : 't = ' + pb + ' ' + L('mois', 'شهرا') + ' ; ' + L('cumul = ', 'التراكمي = ') + mru(cumPb)],
       [L('Besoin de financement', 'حاجة التمويل'), L('− min des cumuls de Fₜ', '− أدنى قيمة للتراكمي'), L('creux au mois ', 'الأدنى في الشهر ') + tm + ' : ' + mru(trough) + ' → <strong>' + mru(r.fundingNeed) + '</strong>'],
       [L('Seuil de rentabilité', 'عتبة المردودية'), L('coûts fixes annuels ÷ contribution par client', 'الثابتة السنوية ÷ مساهمة العميل'), L('revenu/cycle ', 'الإيراد ') + mru(life) + ' − ' + L('variables ', 'المتغيرة ') + mru(life - contr) + ' = ' + mru(contr) + ' ; ' + nf(r.fixedAnnual) + ' ÷ ' + nf(contr) + ' → <strong>' + (r.breakEvenClients == null ? '—' : nf(r.breakEvenClients)) + '</strong> ' + L('clients/an', 'عميل/سنة') + ' (' + L('avec amort. : ', 'مع الاهتلاك: ') + (r.breakEvenWithCapex == null ? '—' : nf(r.breakEvenWithCapex)) + ')'],
-      [L('Résultats annuels', 'النتائج السنوية'), L('CA = Σ encaissements ; marge brute = CA − variables ; résultat = marge − fixes − CAPEX/5 ; cash = Σ Fₜ', 'رقم المعاملات = المقبوضات؛ الهامش = ... ؛ النتيجة = الهامش − الثابتة − CAPEX/5'), L('An 1 : ', 'سنة 1: ') + nf(y1.revenue) + ' − ' + nf(y1.variable) + ' = ' + nf(y1.grossMargin) + ' ; ' + L('résultat ', 'النتيجة ') + nf(y1.result) + ' ; cash ' + nf(y1.cash)]
+      [L('Résultats annuels', 'النتائج السنوية'), L('CA = Σ encaissements ; marge brute = CA − variables ; résultat avant impôt = marge − fixes − CAPEX/5 ; impôt = taux × max(0 ; résultat − déficits reportés) ; résultat net = résultat − impôt ; cash = Σ Fₜ (avant impôt)', 'رقم المعاملات = المقبوضات؛ الهامش = ... ؛ النتيجة قبل الضريبة = الهامش − الثابتة − CAPEX/5 ؛ الضريبة = المعدل × max(0 ؛ النتيجة − الخسائر المرحّلة) ؛ النتيجة الصافية = النتيجة − الضريبة'), L('An 1 : ', 'سنة 1: ') + nf(y1.revenue) + ' − ' + nf(y1.variable) + ' = ' + nf(y1.grossMargin) + ' ; ' + L('résultat avant impôt ', 'النتيجة قبل الضريبة ') + nf(y1.result) + ' ; ' + L('impôt ', 'الضريبة ') + nf(y1.tax) + ' (' + nf(g.tax_rate == null ? 25 : g.tax_rate, 1) + ' %) ; ' + L('résultat net ', 'النتيجة الصافية ') + nf(y1.netResult) + ' ; cash ' + nf(y1.cash)]
     ];
     keep(root, det('fin', L('Méthode de calcul des indicateurs financiers — scénario ', 'طريقة حساب المؤشرات المالية — السيناريو ') + esc(E.SCENARIO_NAMES[k][AR() ? 'ar' : 'fr']) + L(' (valeurs en direct)', ' (بقيم حية)'), tbl([L('Indicateur', 'المؤشر'), L('Formule', 'الصيغة'), L('Application numérique (MRU)', 'التطبيق العددي')], rows)));
   }
@@ -192,17 +194,17 @@
   function scoreMethod() {
     const root = $('scoreMethodRoot'); if (!root) return;
     const iv = (id, d) => parseInt(($(id) || {}).value, 10) || d;
-    const income = iv('incomeInput', 150000), vol = iv('mobileVolInput', 2), ass = iv('assetsInput', 2), wil = iv('wilayaInput', 3);
-    const incS = Math.min(300, (income / 600000) * 300), vS = vol * 75, aS = ass * 70, wS = wil * 45, raw = 300 + incS + vS + aS + wS, tot = Math.min(850, Math.max(300, Math.round(raw)));
-    const tier = tot >= 700 ? [L('Risque faible', 'مخاطر منخفضة'), '10 %', '400 000'] : tot >= 550 ? [L('Risque modéré', 'مخاطر متوسطة'), '20 %', '220 000'] : [L('Risque élevé', 'مخاطر مرتفعة'), '30 %', '90 000'];
+    const income = iv('incomeInput', 15000), vol = iv('mobileVolInput', 2), ass = iv('assetsInput', 2), wil = iv('wilayaInput', 3);
+    const incS = Math.min(300, (income / 60000) * 300), vS = vol * 75, aS = ass * 70, wS = wil * 45, raw = 300 + incS + vS + aS + wS, tot = Math.min(850, Math.max(300, Math.round(raw)));
+    const tier = tot >= 700 ? [L('Risque faible', 'مخاطر منخفضة'), '10 %', '75 000'] : tot >= 550 ? [L('Risque modéré', 'مخاطر متوسطة'), '20 %', '35 000'] : [L('Risque élevé', 'مخاطر مرتفعة'), '30 %', '15 000'];
     const rows = [
       [L('Base', 'الأساس'), L('constante', 'ثابت'), '300'],
-      [L('Revenu du foyer', 'دخل الأسرة'), 'min(300 ; ' + L('revenu', 'الدخل') + ' ÷ 600 000 × 300)', 'min(300 ; ' + nf(income) + ' ÷ 600 000 × 300) = ' + nf(incS, 1)],
+      [L('Revenu du foyer', 'دخل الأسرة'), 'min(300 ; ' + L('revenu', 'الدخل') + ' ÷ 60 000 × 300)', 'min(300 ; ' + nf(income) + ' ÷ 60 000 × 300) = ' + nf(incS, 1)],
       [L('Paiement mobile', 'الدفع عبر الهاتف'), L('niveau (1-3) × 75', 'المستوى (1-3) × 75'), vol + ' × 75 = ' + vS],
       [L('Actifs & garanties', 'الأصول والضمانات'), L('niveau (1-3) × 70', 'المستوى (1-3) × 70'), ass + ' × 70 = ' + aS],
       [L('Wilaya', 'الولاية'), L('niveau (1-3) × 45', 'المستوى (1-3) × 45'), wil + ' × 45 = ' + wS],
       [L('Score', 'النقاط'), L('arrondi (somme) borné entre 300 et 850', 'مجموع مقرّب محصور بين 300 و850'), L('somme = ', 'المجموع = ') + nf(raw, 1) + ' → <strong>' + tot + '</strong> / 850' + (raw > 850 ? ' (' + L('plafonné', 'محصور') + ')' : '')],
-      [L('Décision', 'القرار'), L('≥ 700 : 10 % / 400 000 · 550-699 : 20 % / 220 000 · < 550 : 30 % / 90 000 (acompte / plafond MRU)', '≥700 : 10% / 400 000 · 550-699 : 20% / 220 000 · <550 : 30% / 90 000'), tier[0] + ' → ' + L('acompte ', 'مقدمة ') + tier[1] + ', ' + L('plafond ', 'سقف ') + tier[2] + ' MRU']
+      [L('Décision', 'القرار'), L('≥ 700 : 10 % / 75 000 · 550-699 : 20 % / 35 000 · < 550 : 30 % / 15 000 (acompte / plafond MRU)', '≥700 : 10% / 75 000 · 550-699 : 20% / 35 000 · <550 : 30% / 15 000'), tier[0] + ' → ' + L('acompte ', 'مقدمة ') + tier[1] + ', ' + L('plafond ', 'سقف ') + tier[2] + ' MRU']
     ];
     const note = '<p class="text-[10px] text-slate-500 mb-2">' + L('Mécanisme expérimental : pondérations choisies par l’équipe, non calibrées sur des remboursements réels. L’acompte calculé ici est celui utilisé par le module 2 ; les seuils et plafonds sont des paliers fixes (pas un calcul).', 'آلية تجريبية: أوزان اختارها الفريق وغير معايَرة على سداد فعلي. المقدمة المحسوبة هنا هي المستخدمة في الوحدة 2؛ العتبات والسقوف شرائح ثابتة وليست حسابا.') + '</p>';
     keep(root, det('score', L('Méthode de calcul du Mauri-Score (valeurs en direct)', 'طريقة حساب Mauri-Score (بقيم حية)'), note + tbl([L('Composante', 'المكوّن'), L('Formule', 'الصيغة'), L('Application numérique', 'التطبيق العددي')], rows)));
@@ -246,7 +248,15 @@
     keep(root, det('survey', L('Méthode de calcul des indicateurs de l’enquête (valeurs en direct)', 'طريقة حساب مؤشرات الاستبيان (بقيم حية)'), '<p class="text-[10px] text-slate-500 mb-2">' + L('Échantillon non probabiliste : les indicateurs décrivent les répondants, pas la population.', 'عينة غير احتمالية: المؤشرات تصف المجيبين وليس السكان.') + '</p>' + tbl([L('Indicateur', 'المؤشر'), L('Formule', 'الصيغة'), L('Application numérique', 'التطبيق العددي')], rows) + bands));
   }
 
-  window.Extras = { render() { try { renderBar(); priceMethod(); finMethod(); scoreMethod(); surveyMethod(); } catch (e) { console.error('[extras]', e); } }, paintTheme, chooser: () => chooser(false) };
+  window.Extras = { render() { try { renderBar(); priceMethod(); finMethod(); scoreMethod(); surveyMethod(); } catch (e) { console.error('[extras]', e); } }, paintTheme, chooser: () => chooser(false),
+    // Jeux d'hypothèses nommés : lecture / réception depuis la base de données (sans renvoi à la base)
+    getProfiles: () => readP(),
+    applyRemoteProfiles(o) {
+      if (!o || !Array.isArray(o.list)) return;
+      migP(o);
+      try { localStorage.setItem(PK, JSON.stringify({ list: o.list, active: o.active || null })); } catch (e) { /* ignore */ }
+      sig = ''; renderBar();
+    } };
   const tb = $('themeBtn'); if (tb) tb.addEventListener('click', window.toggleTheme);
   const pc = $('profChip'); if (pc) pc.addEventListener('click', window.openProfileChooser);
   paintTheme(); window.Extras.render(); chooser(false);

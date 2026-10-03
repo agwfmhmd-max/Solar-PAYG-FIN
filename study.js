@@ -5,7 +5,7 @@
 (function () {
   'use strict';
   const E = window.PaygEngine;
-  const LS_KEY = 'payg_study_state_v1';
+  const LS_KEY = 'payg_study_state_v2';
   const lang = () => (typeof currentLang !== 'undefined' ? currentLang : 'fr');
   const $ = (id) => document.getElementById(id);
   const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -47,10 +47,10 @@
       detail: 'Détail question par question (résultats bruts)',
       scen: 'Scénario', tabIn: 'Hypothèses du scénario', globalIn: 'Hypothèses communes', capexT: 'A. Investissement initial', fixedT: 'B. Coûts fixes annuels', varT: 'C. Coûts variables (par client)', revT: 'D. Revenus', yearT: 'Résultats annuels — scénario sélectionné', compT: 'Comparaison des trois scénarios',
       hyp: 'Hypothèse', reset: 'Rétablir les valeurs par défaut',
-      varDrivers: { install_pct: 'Installation (% prix comptant)', iot_cost: 'Équipement paiement/IoT (MRU/kit)', funding_rate: 'Coût de financement (% / an)', commission_pct: 'Commission paiement mobile (%)', servicing: 'Suivi client (MRU/mois)', deposit_pct: 'Acompte (% du prix total)', insurance_takeup: 'Clients assurés (%)', coverage: 'Couverture du prix de référence (% répondants)', addressable: 'Marché adressable (nb. de clients potentiels)', maybe_conv: 'Conversion des « peut-être » (%)' },
+      varDrivers: { install_pct: 'Installation (% prix comptant)', iot_cost: 'Équipement paiement/IoT (MRU/kit)', funding_rate: 'Coût de financement (% / an)', commission_pct: 'Commission paiement mobile (%)', servicing: 'Suivi client (MRU/mois)', deposit_pct: 'Acompte (% du prix total)', insurance_takeup: 'Clients assurés (%)', tax_rate: 'Impôt sur le bénéfice (% du résultat imposable)', coverage: 'Couverture du prix de référence (% répondants)', addressable: 'Marché adressable (nb. de clients potentiels)', maybe_conv: 'Conversion des « peut-être » (%)' },
       sc: ['Nouveaux clients, année 1', 'Croissance annuelle (%)', 'Prix comptant moyen du kit (MRU)', 'Coût d’achat du kit (% du prix comptant)', 'Durée de financement (mois)', 'Taux d’impayés (%)', 'Prime d’assurance (% prix comptant / an)', 'Marge visée (% des coûts)', 'Coefficient coûts opérationnels', 'Subvention non acquise (MRU)', 'Taux d’actualisation (%)'],
-      rowsYear: ['Nouveaux clients', 'Chiffre d’affaires (encaissements)', 'Coûts variables', 'Coûts fixes', 'Coûts totaux', 'Marge brute', 'Amortissement (CAPEX/5)', 'Résultat prévisionnel', 'Cash-flow net'],
-      rowsComp: ['CA cumulé 5 ans', 'Coûts cumulés 5 ans', 'Marge brute cumulée', 'Résultat cumulé 5 ans', 'Cash-flow cumulé 5 ans', 'VAN', 'TRI', 'Payback', 'Besoin de financement max', 'Seuil de rentabilité', 'Prix PAYG total (assuré)', 'Équivalent mensuel'],
+      rowsYear: ['Nouveaux clients', 'Chiffre d’affaires (encaissements)', 'Coûts variables', 'Coûts fixes', 'Coûts totaux', 'Marge brute', 'Amortissement (CAPEX/5)', 'Résultat avant impôt', '− Déficits antérieurs imputés', 'Résultat imposable', 'Impôt sur le bénéfice', 'Résultat net après impôt', 'Déficit restant à reporter', 'Cash-flow net'],
+      rowsComp: ['CA cumulé 5 ans', 'Coûts cumulés 5 ans', 'Marge brute cumulée', 'Résultat avant impôt cumulé 5 ans', 'Impôts cumulés 5 ans', 'Résultat net cumulé 5 ans', 'Cash-flow cumulé 5 ans', 'VAN', 'TRI', 'Payback', 'Besoin de financement max', 'Seuil de rentabilité', 'Prix PAYG total (assuré)', 'Équivalent mensuel'],
       kVAN: 'VAN (60 mois)', kTRI: 'TRI annualisé', kPB: 'Payback', kBE: 'Seuil de rentabilité',
       why: { van: 'Flux mensuels sur 60 mois actualisés à {r} % ; investissement initial : {capex}.', tri: 'Taux qui annule la VAN des mêmes flux.', pb: 'Premier mois où le cash-flow cumulé devient positif.', be: 'Coûts fixes annuels ({fixed}) ÷ contribution par client ({contrib}) sur toute la durée de financement.' },
       months: 'mois', clientsYr: 'clients / an', over60: '> 60 mois', na: 'non calculable',
@@ -86,10 +86,10 @@
       detail: 'التفصيل سؤالا بسؤال (النتائج الخام)',
       scen: 'السيناريو', tabIn: 'فرضيات السيناريو', globalIn: 'فرضيات مشتركة', capexT: 'أ. الاستثمار الأولي', fixedT: 'ب. التكاليف الثابتة السنوية', varT: 'ج. التكاليف المتغيرة (لكل عميل)', revT: 'د. الإيرادات', yearT: 'النتائج السنوية — السيناريو المختار', compT: 'مقارنة السيناريوهات الثلاثة',
       hyp: 'فرضية', reset: 'استعادة القيم الافتراضية',
-      varDrivers: { install_pct: 'التركيب (% من السعر النقدي)', iot_cost: 'جهاز الدفع (أوقية/نظام)', funding_rate: 'تكلفة التمويل (% سنويا)', commission_pct: 'عمولة الدفع (%)', servicing: 'متابعة العميل (أوقية/شهر)', deposit_pct: 'الدفعة المقدمة (%)', insurance_takeup: 'العملاء المؤمَّنون (%)', coverage: 'تغطية السعر المرجعي (% المجيبين)', addressable: 'السوق المستهدف (عدد العملاء)', maybe_conv: 'تحويل «ربما» (%)' },
+      varDrivers: { install_pct: 'التركيب (% من السعر النقدي)', iot_cost: 'جهاز الدفع (أوقية/نظام)', funding_rate: 'تكلفة التمويل (% سنويا)', commission_pct: 'عمولة الدفع (%)', servicing: 'متابعة العميل (أوقية/شهر)', deposit_pct: 'الدفعة المقدمة (%)', insurance_takeup: 'العملاء المؤمَّنون (%)', tax_rate: 'الضريبة على الأرباح (% من الربح الخاضع للضريبة)', coverage: 'تغطية السعر المرجعي (% المجيبين)', addressable: 'السوق المستهدف (عدد العملاء)', maybe_conv: 'تحويل «ربما» (%)' },
       sc: ['عملاء جدد، السنة 1', 'النمو السنوي (%)', 'متوسط السعر النقدي (أوقية)', 'تكلفة شراء النظام (%)', 'مدة التمويل (أشهر)', 'نسبة التعثر (%)', 'قسط التأمين (% سنويا)', 'الهامش (% من التكاليف)', 'معامل التكاليف التشغيلية', 'منحة غير مؤكدة (أوقية)', 'معدل الخصم (%)'],
-      rowsYear: ['عملاء جدد', 'رقم المعاملات (المقبوضات)', 'تكاليف متغيرة', 'تكاليف ثابتة', 'إجمالي التكاليف', 'الهامش الإجمالي', 'الاهتلاك', 'النتيجة التقديرية', 'التدفق النقدي الصافي'],
-      rowsComp: ['رقم المعاملات 5 سنوات', 'التكاليف 5 سنوات', 'الهامش الإجمالي', 'النتيجة 5 سنوات', 'التدفق النقدي 5 سنوات', 'القيمة الحالية الصافية', 'معدل العائد الداخلي', 'فترة الاسترداد', 'أقصى حاجة تمويل', 'عتبة المردودية', 'السعر الإجمالي PAYG', 'المعادل الشهري'],
+      rowsYear: ['عملاء جدد', 'رقم المعاملات (المقبوضات)', 'تكاليف متغيرة', 'تكاليف ثابتة', 'إجمالي التكاليف', 'الهامش الإجمالي', 'الاهتلاك', 'النتيجة قبل الضريبة', '− الخسائر المرحّلة المخصومة', 'الربح الخاضع للضريبة', 'الضريبة على الأرباح', 'النتيجة الصافية بعد الضريبة', 'الخسارة المتبقية للترحيل', 'التدفق النقدي الصافي'],
+      rowsComp: ['رقم المعاملات 5 سنوات', 'التكاليف 5 سنوات', 'الهامش الإجمالي', 'النتيجة قبل الضريبة 5 سنوات', 'الضرائب 5 سنوات', 'النتيجة الصافية 5 سنوات', 'التدفق النقدي 5 سنوات', 'القيمة الحالية الصافية', 'معدل العائد الداخلي', 'فترة الاسترداد', 'أقصى حاجة تمويل', 'عتبة المردودية', 'السعر الإجمالي PAYG', 'المعادل الشهري'],
       kVAN: 'القيمة الحالية الصافية (60 شهرا)', kTRI: 'معدل العائد الداخلي', kPB: 'فترة الاسترداد', kBE: 'عتبة المردودية',
       why: { van: 'تدفقات شهرية على 60 شهرا مخصومة بمعدل {r}%؛ الاستثمار الأولي: {capex}.', tri: 'المعدل الذي يجعل القيمة الحالية صفرا.', pb: 'أول شهر يصبح فيه التدفق التراكمي موجبا.', be: 'التكاليف الثابتة السنوية ({fixed}) ÷ مساهمة العميل ({contrib}).' },
       months: 'شهرا', clientsYr: 'عميل / سنة', over60: '> 60 شهرا', na: 'غير قابل للحساب',
@@ -113,7 +113,8 @@
     const saved = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
     if (saved && saved.g && saved.sc) { Object.assign(state.g, saved.g); Object.keys(state.sc).forEach((k) => Object.assign(state.sc[k], saved.sc[k] || {})); }
   } catch (e) { /* stockage indisponible : on garde les valeurs par défaut */ }
-  const save = () => { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ } };
+  E.migrateLegacy(state.g, state.sc); // anciennes valeurs (ancienne ouguiya) -> nouvelle ouguiya ; valeurs personnalisées conservées
+  const save = () => { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ } if (window.HypDB) window.HypDB.saveState(state); };
 
   let indicators = null, surveyStatus = 'loading', surveyMeta = null, activeScenario = 'central', results = {}, charts = [];
   const KIT_KEYS = { kit1: 'kit1_cash', kit2: 'kit2_cash', kit3: 'kit3_cash' };
@@ -225,6 +226,7 @@
     $('lblCapVal').innerText = mru(base); $('lblIntVal').innerText = mru(other); $('lblInsVal').innerText = mru(ins);
     window.__lastInstallment = pr.installment; window.__lastPeriods = pr.periods; window.__freq = p.freq;
     refreshPayButtons();
+    if (typeof window.syncPaymentPlan === 'function') window.syncPaymentPlan();
 
     const root = $('pricingStudyRoot'); if (!root) return;
     let h = '<div class="bg-slate-950 border border-slate-800 rounded-xl p-5 space-y-4"><h4 class="text-xs text-emerald-400 font-bold uppercase tracking-wider">' + esc(L.lblPriceSection) + '</h4>';
@@ -302,16 +304,16 @@
     why('whyBE', L.why.be.replace('{fixed}', mru(r.fixedAnnual)).replace('{contrib}', mru(r.contributionPerClient)));
 
     // Tableaux
-    const Y = r.years;
+    const Y = r.years.map((y) => Object.assign({}, y, { lossUsed: y.result > 0 ? y.result - y.taxBase : 0 })); // déficit antérieur imputé (affichage)
     let h = '<h5 class="text-xs font-bold text-slate-300 mb-2">' + esc(L.yearT) + '</h5><div class="overflow-x-auto"><table class="w-full text-[11px] text-slate-300"><thead><tr class="text-slate-500"><th class="text-start py-1"></th>' + Y.map((y) => '<th class="text-end py-1 px-2">' + (lang() === 'ar' ? 'سنة ' : 'An ') + y.year + '</th>').join('') + '</tr></thead><tbody>';
-    const keys = ['clients', 'revenue', 'variable', 'fixed', 'totalCosts', 'grossMargin', 'deprec', 'result', 'cash'];
-    keys.forEach((k, i) => { h += '<tr class="border-t border-slate-800 ' + (['revenue', 'result', 'cash'].includes(k) ? 'font-bold text-white' : '') + '"><td class="py-1">' + esc(L.rowsYear[i]) + '</td>' + Y.map((y) => '<td class="text-end px-2 font-mono ' + (y[k] < 0 ? 'text-red-400' : '') + '">' + nf(y[k]) + '</td>').join('') + '</tr>'; });
-    h += '</tbody></table></div><p class="text-[10px] text-slate-500 mt-1">MRU — ' + esc(lang() === 'ar' ? 'جميع الأرقام ناتجة عن الفرضيات أعلاه.' : 'tous ces chiffres découlent des hypothèses ci-dessus (aucune n’est une donnée d’enquête, sauf mention contraire).') + '</p>';
+    const keys = ['clients', 'revenue', 'variable', 'fixed', 'totalCosts', 'grossMargin', 'deprec', 'result', 'lossUsed', 'taxBase', 'tax', 'netResult', 'lossCarry', 'cash'];
+    keys.forEach((k, i) => { h += '<tr class="border-t border-slate-800 ' + (['revenue', 'result', 'netResult', 'cash'].includes(k) ? 'font-bold text-white' : '') + '"><td class="py-1">' + esc(L.rowsYear[i]) + '</td>' + Y.map((y) => '<td class="text-end px-2 font-mono ' + (y[k] < 0 ? 'text-red-400' : '') + '">' + nf(y[k]) + '</td>').join('') + '</tr>'; });
+    h += '</tbody></table></div><p class="text-[10px] text-slate-500 mt-1">MRU — ' + esc(lang() === 'ar' ? 'جميع الأرقام ناتجة عن الفرضيات أعلاه.' : 'tous ces chiffres découlent des hypothèses ci-dessus (aucune n’est une donnée d’enquête, sauf mention contraire).') + '</p>'+ '<p class="text-[10px] text-slate-500">' + esc(lang() === 'ar' ? 'الضريبة على الأرباح = معدل الضريبة × الربح الخاضع للضريبة بعد خصم الخسائر المرحّلة من السنوات السابقة (لا ضريبة عند الخسارة). لذلك قد تكون النتيجة قبل الضريبة موجبة والضريبة صفرًا: تُخصم أولًا خسائر السنوات السابقة (مثل السنة الأولى)، ولا تبدأ الضريبة إلا بعد استنفادها (انظر الأسطر «الخسائر المرحّلة المخصومة» و«الربح الخاضع للضريبة» و«الخسارة المتبقية للترحيل»). تُحتسب على النتيجة قبل الضريبة؛ مؤشرات VAN وTRI والتدفق النقدي تبقى قبل الضريبة.' : 'Impôt sur le bénéfice = taux × résultat imposable, après imputation des déficits des années précédentes (aucun impôt en cas de perte). Un résultat avant impôt positif peut donc donner un impôt de 0 : le déficit des années précédentes (ex. année 1) est d’abord déduit, et l’impôt ne commence que lorsque ce déficit est épuisé (lignes « Déficits imputés », « Résultat imposable » et « Déficit restant »). Les indicateurs VAN, TRI et cash-flow restent avant impôt.') + '</p>';
     $('finYearTable').innerHTML = h;
 
     const names = ['prudent', 'central', 'dynamique'];
     let c = '<h5 class="text-xs font-bold text-slate-300 mb-2">' + esc(L.compT) + '</h5><div class="overflow-x-auto"><table class="w-full text-[11px] text-slate-300"><thead><tr class="text-slate-500"><th></th>' + names.map((k) => '<th class="text-end py-1 px-2">' + esc(E.SCENARIO_NAMES[k][lang()]) + '</th>').join('') + '</tr></thead><tbody>';
-    const comp = [(x) => nf(x.totals.revenue), (x) => nf(x.totals.costs), (x) => nf(x.totals.grossMargin), (x) => nf(x.totals.result), (x) => nf(x.totals.cash), (x) => nf(x.npv), (x) => (x.irr == null ? '—' : nf(x.irr * 100, 1) + ' %'), (x) => (x.paybackMonths == null ? L.over60 : x.paybackMonths + ' ' + L.months), (x) => nf(x.fundingNeed), (x) => (x.breakEvenClients == null ? '—' : nf(x.breakEvenClients)), (x) => nf(x.priceInsured.total), (x) => nf(x.priceInsured.monthlyEquivalent)];
+    const comp = [(x) => nf(x.totals.revenue), (x) => nf(x.totals.costs), (x) => nf(x.totals.grossMargin), (x) => nf(x.totals.result), (x) => nf(x.totals.tax), (x) => nf(x.totals.netResult), (x) => nf(x.totals.cash), (x) => nf(x.npv), (x) => (x.irr == null ? '—' : nf(x.irr * 100, 1) + ' %'), (x) => (x.paybackMonths == null ? L.over60 : x.paybackMonths + ' ' + L.months), (x) => nf(x.fundingNeed), (x) => (x.breakEvenClients == null ? '—' : nf(x.breakEvenClients)), (x) => nf(x.priceInsured.total), (x) => nf(x.priceInsured.monthlyEquivalent)];
     L.rowsComp.forEach((lbl, i) => { c += '<tr class="border-t border-slate-800"><td class="py-1">' + esc(lbl) + '</td>' + names.map((k) => '<td class="text-end px-2 font-mono">' + comp[i](results[k]) + '</td>').join('') + '</tr>'; });
     c += '</tbody></table></div>';
     $('finCompTable').innerHTML = c;
@@ -421,6 +423,17 @@
     onLanguage() { renderAll(); },
     onSurvey, renderPricing, renderFinOutputs,
     setState(ns) { state = ns; save(); if (surveyMeta) onSurvey(surveyMeta); renderAll(); },
+    // Hypothèses reçues de la base de données : appliquées sans les renvoyer à la base (évite toute boucle d'écriture)
+    applyRemote(remote) {
+      const ns = E.defaultState();
+      if (remote && remote.g && remote.sc) { Object.assign(ns.g, remote.g); Object.keys(ns.sc).forEach((k) => Object.assign(ns.sc[k], remote.sc[k] || {})); }
+      E.migrateLegacy(ns.g, ns.sc); state = ns;
+      try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ }
+      const te = $('tenureInput'), fe = $('freqInput');
+      if (te && [...te.options].some((o) => o.value === String(ns.sc.central.tenure))) te.value = String(ns.sc.central.tenure);
+      if (fe && [...fe.options].some((o) => o.value === ns.g.freq)) fe.value = ns.g.freq;
+      if (surveyMeta) onSurvey(surveyMeta); renderAll();
+    },
     getActive: () => activeScenario, priceInputs: currentPriceInputs,
     getState: () => state, getIndicators: () => indicators, getResults: () => results
   };

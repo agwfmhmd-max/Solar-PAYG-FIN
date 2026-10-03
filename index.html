@@ -203,14 +203,14 @@
                     <div>
                         <div class="flex justify-between items-center text-xs sm:text-sm font-medium mb-1">
                             <label class="text-slate-300" data-key="lblIncome">Revenu mensuel estimé du foyer :</label>
-                            <span id="incomeValDisplay" class="text-amber-400 font-mono font-bold text-base">150 000 MRU</span>
+                            <span id="incomeValDisplay" class="text-amber-400 font-mono font-bold text-base">15 000 MRU</span>
                         </div>
-                        <input type="range" id="incomeInput" min="30000" max="600000" step="10000" value="150000" 
+                        <input type="range" id="incomeInput" min="2000" max="60000" step="1000" value="15000" 
                                class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500">
                         <div class="flex justify-between text-[10px] text-slate-500 mt-1 font-mono">
+                            <span>2 000 MRU</span>
                             <span>30 000 MRU</span>
-                            <span>300 000 MRU</span>
-                            <span>600 000 MRU</span>
+                            <span>60 000 MRU</span>
                         </div>
                     </div>
 
@@ -262,11 +262,11 @@
                     <div class="w-full mt-3 pt-3 border-t border-slate-800/80 text-left rtl:text-right space-y-2 text-xs">
                         <div class="flex justify-between">
                             <span class="text-slate-400" data-key="resAcompteLabel">Acompte obligatoire :</span>
-                            <span id="resAcomptePct" class="font-bold text-amber-400 font-mono">10%</span>
+                            <span id="resAcomptePct" class="font-bold text-amber-400 font-mono">20%</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-slate-400" data-key="resMaxCreditLabel">Plafond de crédit accordé :</span>
-                            <span id="resMaxCredit" class="font-bold text-slate-200 font-mono">350 000 MRU</span>
+                            <span id="resMaxCredit" class="font-bold text-slate-200 font-mono">35 000 MRU</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-slate-400" data-key="resInsurLabel">Éligibilité Micro-assurance :</span>
@@ -370,15 +370,15 @@
                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
                             <div class="bg-slate-900 border border-slate-800 p-3 rounded-lg text-center">
                                 <span class="text-[11px] text-slate-400 block" data-key="kpiAcompte">Acompte à verser :</span>
-                                <span id="outAcompte" class="text-base font-bold text-amber-400 font-mono">8 000 MRU</span>
+                                <span id="outAcompte" class="text-base font-bold text-amber-400 font-mono">2 339 MRU</span>
                             </div>
                             <div class="bg-slate-900 border border-slate-800 p-3 rounded-lg text-center">
                                 <span id="freqLabelDisplay" class="text-[11px] text-slate-400 block" data-key="kpiInstallment">Échéance Hebdomadaire :</span>
-                                <span id="outInstallment" class="text-base font-bold text-emerald-400 font-mono">1 680 MRU</span>
+                                <span id="outInstallment" class="text-base font-bold text-emerald-400 font-mono">180 MRU</span>
                             </div>
                             <div class="bg-slate-900 border border-slate-800 p-3 rounded-lg text-center col-span-2 sm:col-span-1">
                                 <span class="text-[11px] text-slate-400 block" data-key="kpiTotalCost">Coût Total Financé :</span>
-                                <span id="outTotalCost" class="text-base font-bold text-white font-mono">95 360 MRU</span>
+                                <span id="outTotalCost" class="text-base font-bold text-white font-mono">11 695 MRU</span>
                             </div>
                         </div>
 
@@ -394,9 +394,9 @@
                                 <div id="barInsurance" class="bg-emerald-500 h-full" style="width: 5%;"></div>
                             </div>
                             <div class="flex justify-between text-[11px] font-mono text-slate-400 pt-1 flex-wrap gap-2">
-                                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 bg-blue-600 rounded-full inline-block"></span> <span data-key="lblCap">Capital</span> : <strong id="lblCapVal" class="text-slate-200">72 000 MRU</strong></span>
-                                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 bg-amber-500 rounded-full inline-block"></span> <span data-key="lblInt">Marge FinTech</span> : <strong id="lblIntVal" class="text-slate-200">18 000 MRU</strong></span>
-                                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 bg-emerald-500 rounded-full inline-block"></span> <span data-key="lblIns">Assurance</span> : <strong id="lblInsVal" class="text-slate-200">5 360 MRU</strong></span>
+                                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 bg-blue-600 rounded-full inline-block"></span> <span data-key="lblCap">Capital</span> : <strong id="lblCapVal" class="text-slate-200">6 975 MRU</strong></span>
+                                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 bg-amber-500 rounded-full inline-block"></span> <span data-key="lblInt">Marge FinTech</span> : <strong id="lblIntVal" class="text-slate-200">4 508 MRU</strong></span>
+                                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 bg-emerald-500 rounded-full inline-block"></span> <span data-key="lblIns">Assurance</span> : <strong id="lblInsVal" class="text-slate-200">213 MRU</strong></span>
                             </div>
                         </div>
                     </div>
@@ -498,10 +498,12 @@
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1" data-key="lblAmountToPay">Montant à recharger (MRU) :</label>
                         <div class="flex gap-2">
-                            <button onclick="simulatePaymentWithAmount(1680)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-mono text-slate-200">1 680 MRU (1 Sem.)</button>
-                            <button onclick="simulatePaymentWithAmount(6720)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-mono text-slate-200">6 720 MRU (1 Mois)</button>
+                            <button onclick="simulatePaymentWithAmount(180)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-mono text-slate-200">180 MRU (1 Sem.)</button>
+                            <button onclick="simulatePaymentWithAmount(720)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-mono text-slate-200">720 MRU (1 Mois)</button>
                         </div>
                     </div>
+
+                    <div id="paymentPlanInfo" class="p-3 rounded-xl border border-slate-800 bg-slate-900 text-[11px] text-slate-300 space-y-1.5"></div>
 
                     <button id="payBtn" onclick="simulatePayment()" class="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl text-xs sm:text-sm shadow-lg transition flex items-center justify-center gap-2">
                         <i class="fa-solid fa-bolt"></i>
@@ -526,6 +528,7 @@
             </div>
 
             <div id="hypProfilesRoot"></div>
+            <div id="hypDbStatus" class="text-[11px] text-slate-400 flex items-center gap-2 -mt-3 mb-4 px-1"></div>
 
             <!-- Hypothèses modifiables (générées par study.js : trois scénarios, CAPEX, coûts fixes, coûts variables) -->
             <div class="bg-slate-950 p-5 border border-slate-800 rounded-xl">
@@ -675,6 +678,7 @@
     </footer>
 
     <script src="extras.js"></script>
+    <script src="hypdb.js"></script>
     <script>
         // Dictionary of translations
         let currentLang = 'fr';
@@ -935,14 +939,14 @@
 
         const optionsMobileVol = {
             fr: [
-                { val: "1", text: "Faible (< 50 000 MRU/mois ou compte récent)" },
-                { val: "2", text: "Moyen (50 000 - 200 000 MRU/mois, récurrent)", selected: true },
-                { val: "3", text: "Élevé (> 200 000 MRU/mois, historique très fort)" }
+                { val: "1", text: "Faible (< 3 000 MRU/mois ou compte récent)" },
+                { val: "2", text: "Moyen (3 000 - 15 000 MRU/mois, récurrent)", selected: true },
+                { val: "3", text: "Élevé (> 15 000 MRU/mois, historique très fort)" }
             ],
             ar: [
-                { val: "1", text: "منخفض (< 50,000 أوقية/شهرياً)" },
-                { val: "2", text: "متوسط (50,000 - 200,000 أوقية/شهرياً)", selected: true },
-                { val: "3", text: "مرتفع (> 200,000 أوقية/شهرياً)" }
+                { val: "1", text: "منخفض (< 3,000 أوقية/شهرياً)" },
+                { val: "2", text: "متوسط (3,000 - 15,000 أوقية/شهرياً)", selected: true },
+                { val: "3", text: "مرتفع (> 15,000 أوقية/شهرياً)" }
             ]
         };
 
@@ -974,14 +978,14 @@
 
         const kitsData = {
             fr: [
-                { id: "kit1", name: "Kit Éclairage & Chargeur (4 Lampes + Panneau 80W)", val: "80 000 MRU", checked: true },
-                { id: "kit2", name: "Kit Confort Familial (Lampes + TV Solaire 32\" + Ventilateur)", val: "180 000 MRU" },
-                { id: "kit3", name: "Kit Productif / Commercial (Congélateur Solaire pour Boutiques)", val: "350 000 MRU" }
+                { id: "kit1", name: "Kit Éclairage & Chargeur (4 Lampes + Panneau 80W)", val: "8 500 MRU", checked: true },
+                { id: "kit2", name: "Kit Confort Familial (Lampes + TV Solaire 32\" + Ventilateur)", val: "20 000 MRU" },
+                { id: "kit3", name: "Kit Productif / Commercial (Congélateur Solaire pour Boutiques)", val: "55 000 MRU" }
             ],
             ar: [
-                { id: "kit1", name: "نظام الإنارة والشحن (4 مصابيح + لوح 80 واط)", val: "80,000 أوقية", checked: true },
-                { id: "kit2", name: "النظام العائلي (مصابيح + تلفزيون شمسي 32 بوصة + مروحة)", val: "180,000 أوقية" },
-                { id: "kit3", name: "النظام الإنتاجي/التجاري (مجمد شمسي للمتاجر)", val: "350,000 أوقية" }
+                { id: "kit1", name: "نظام الإنارة والشحن (4 مصابيح + لوح 80 واط)", val: "8,500 أوقية", checked: true },
+                { id: "kit2", name: "النظام العائلي (مصابيح + تلفزيون شمسي 32 بوصة + مروحة)", val: "20,000 أوقية" },
+                { id: "kit3", name: "النظام الإنتاجي/التجاري (مجمد شمسي للمتاجر)", val: "55,000 أوقية" }
             ]
         };
 
@@ -1019,16 +1023,19 @@
             populateSelect('wilayaInput', wilayasData[currentLang]);
             populateSelect('mobileVolInput', optionsMobileVol[currentLang]);
             populateSelect('assetsInput', optionsAssets[currentLang]);
+            const prevFreq = (document.getElementById('freqInput') || {}).value;
             populateSelect('freqInput', freqOptions[currentLang]);
+            if (prevFreq && [...document.getElementById('freqInput').options].some(o => o.value === prevFreq)) document.getElementById('freqInput').value = prevFreq;
 
             // Populate kits
             const kitContainer = document.getElementById('kitSelectionContainer');
+            const prevKit = (document.querySelector('input[name="productKit"]:checked') || {}).value;
             kitContainer.innerHTML = '';
             kitsData[currentLang].forEach(k => {
                 const label = document.createElement('label');
                 label.className = "flex items-center p-3 bg-slate-800/80 border border-slate-700/80 rounded-xl cursor-pointer hover:border-emerald-500 transition";
                 label.innerHTML = `
-                    <input type="radio" name="productKit" value="${k.id}" ${k.checked ? 'checked' : ''} class="text-emerald-500 focus:ring-0">
+                    <input type="radio" name="productKit" value="${k.id}" ${(prevKit ? k.id === prevKit : k.checked) ? 'checked' : ''} class="text-emerald-500 focus:ring-0">
                     <div class="${currentLang === 'ar' ? 'mr-3' : 'ml-3'} text-xs">
                         <div class="font-bold text-white">${k.name}</div>
                         <div class="text-slate-400 font-mono">${k.val}</div>
@@ -1049,6 +1056,7 @@
             renderTeam();
             renderSurveyResults();
             if (window.StudyUI) window.StudyUI.onLanguage();
+            if (window.HypDB) window.HypDB.repaint();
         }
 
         function populateSelect(id, list) {
@@ -1087,7 +1095,7 @@
             const volScore = (parseInt(mobileVolInput.value) || 2) * 75;
             const assetsScore = (parseInt(assetsInput.value) || 2) * 70;
             const wilayaScore = (parseInt(wilayaInput.value) || 3) * 45;
-            const incomeScore = Math.min(300, (income / 600000) * 300);
+            const incomeScore = Math.min(300, (income / 60000) * 300);
 
             let totalScore = Math.round(300 + incomeScore + volScore + assetsScore + wilayaScore);
             totalScore = Math.min(850, Math.max(300, totalScore));
@@ -1106,17 +1114,17 @@
                 badge.className = "px-4 py-1.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 my-1";
                 badge.innerText = currentLang === 'ar' ? "مخاطر منخفضة (ملاءة عالية)" : "Profil à Risque Faible (Très Solvable)";
                 resAcompte.innerText = "10%";
-                resMaxCredit.innerText = "400 000 MRU";
+                resMaxCredit.innerText = "75 000 MRU";
             } else if (totalScore >= 550) {
                 badge.className = "px-4 py-1.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 my-1";
                 badge.innerText = currentLang === 'ar' ? "مخاطر متوسطة" : "Profil à Risque Modéré";
                 resAcompte.innerText = "20%";
-                resMaxCredit.innerText = "220 000 MRU";
+                resMaxCredit.innerText = "35 000 MRU";
             } else {
                 badge.className = "px-4 py-1.5 rounded-full text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/40 my-1";
                 badge.innerText = currentLang === 'ar' ? "مخاطر مرتفعة (يتطلب ضامن)" : "Profil à Risque Élevé (Garantie Requise)";
                 resAcompte.innerText = "30%";
-                resMaxCredit.innerText = "90 000 MRU";
+                resMaxCredit.innerText = "15 000 MRU";
             }
 
             updatePricing();
@@ -1127,7 +1135,7 @@
         });
 
         // Logic Module 2 - Pricing
-        const productPrices = { kit1: 80000, kit2: 180000, kit3: 350000 };
+        const productPrices = { kit1: 8500, kit2: 20000, kit3: 55000 };
 
         // Module 2 : la tarification est désormais calculée par engine.js (prix transparent) et affichée par study.js
         function updatePricing() { if (window.StudyUI) window.StudyUI.renderPricing(); }
@@ -1158,35 +1166,139 @@
             simulatePaymentWithAmount(Math.round(window.__lastInstallment || 0));
         }
 
+        /* ---- Plan de paiement du Module 3 ----
+         * Le nombre d'échéances à payer est fixé par la durée de financement choisie au Module 2
+         * (durée × périodes par an ÷ 12). Le client ne peut jamais payer plus d'échéances que le contrat n'en prévoit.
+         * Quand toutes les échéances sont payées, l'équipement reste déverrouillé définitivement. */
+        const paymentPlan = { sig: null, paid: 0, total: 0 };
+        const planText = {
+            fr: {
+                paid: 'Échéances payées', left: 'Reste à payer', contract: 'Durée du contrat', days: 'jours d’énergie',
+                nothing: 'Aucun paiement enregistré : l’équipement reste verrouillé.',
+                settledMsg: 'Financement soldé : toutes les échéances sont payées, l’équipement reste déverrouillé définitivement.',
+                settledStatus: 'ÉQUIPEMENT SOLDÉ — DÉVERROUILLÉ DÉFINITIVEMENT', settledBtn: 'Financement soldé — aucun paiement requis', unlimited: 'illimité',
+                otpDone: 'OTP : non requis (équipement soldé)',
+                ok: (n, amt) => 'Paiement accepté : ' + n + ' échéance(s) réglée(s), ' + amt.toLocaleString('fr-FR') + ' MRU débités.',
+                capped: (n, amt, asked) => 'Seules ' + n + ' échéance(s) restaient : ' + amt.toLocaleString('fr-FR') + ' MRU débités (au lieu de ' + asked.toLocaleString('fr-FR') + ' MRU). Le contrat est soldé.',
+                months: 'mois'
+            },
+            ar: {
+                paid: 'الأقساط المسددة', left: 'المتبقي للسداد', contract: 'مدة العقد', days: 'يوم من الطاقة',
+                nothing: 'لا توجد دفعات مسجلة: يبقى الجهاز مقفلاً.',
+                settledMsg: 'تم سداد التمويل بالكامل: جميع الأقساط مدفوعة ويبقى الجهاز مفتوحاً بشكل نهائي.',
+                settledStatus: 'تم سداد التمويل — النظام مفتوح نهائياً', settledBtn: 'تم سداد التمويل — لا يلزم أي دفع', unlimited: 'غير محدود',
+                otpDone: 'OTP : غير مطلوب (تم السداد)',
+                ok: (n, amt) => 'تم قبول الدفع: سُدد ' + n + ' قسط، وخُصم ' + amt.toLocaleString('fr-FR') + ' أوقية.',
+                capped: (n, amt, asked) => 'كان المتبقي ' + n + ' قسط فقط: خُصم ' + amt.toLocaleString('fr-FR') + ' أوقية (بدل ' + asked.toLocaleString('fr-FR') + '). أصبح العقد مسدداً.',
+                months: 'شهراً'
+            }
+        };
+        const periodDays = () => ({ daily: 1, weekly: 7, monthly: 30 }[window.__freq || 'weekly']);
+
+        function planSignature() {
+            const kit = (document.querySelector('input[name="productKit"]:checked') || {}).value || 'kit1';
+            const ten = (document.getElementById('tenureInput') || {}).value;
+            const fq = (document.getElementById('freqInput') || {}).value;
+            const ins = !!(document.getElementById('insuranceToggle') || {}).checked;
+            return [kit, ten, fq, ins].join('|');
+        }
+
+        // Appelée à chaque recalcul de la tarification (Module 2) : un nouveau contrat (kit, durée, fréquence, assurance) repart de zéro.
+        function syncPaymentPlan() {
+            const total = parseInt(window.__lastPeriods, 10) || 0;
+            const sig = planSignature();
+            if (paymentPlan.sig !== null && sig !== paymentPlan.sig) { paymentPlan.paid = 0; remainingDays = 0; }
+            paymentPlan.sig = sig;
+            paymentPlan.total = total;
+            paymentPlan.paid = Math.min(paymentPlan.paid, total);
+            renderPaymentPlan();
+        }
+
+        function renderPaymentPlan(msg) {
+            const T = planText[currentLang] || planText.fr;
+            const total = paymentPlan.total, paid = paymentPlan.paid;
+            const inst = Math.round(window.__lastInstallment || 0);
+            const settled = total > 0 && paid >= total;
+            const pct = total ? Math.round((paid / total) * 100) : 0;
+            const fmt = (x) => Number(x).toLocaleString('fr-FR');
+            const box = document.getElementById('paymentPlanInfo');
+            if (box) {
+                const tenure = parseInt((document.getElementById('tenureInput') || {}).value, 10) || 0;
+                box.innerHTML =
+                    '<div class="flex justify-between"><span>' + T.contract + '</span><strong class="font-mono text-slate-100">' + tenure + ' ' + T.months + ' — ' + fmt(total) + ' ' + (currentLang === 'ar' ? 'قسط' : 'échéances') + '</strong></div>' +
+                    '<div class="flex justify-between"><span>' + T.paid + '</span><strong class="font-mono ' + (settled ? 'text-emerald-400' : 'text-amber-400') + '">' + fmt(paid) + ' / ' + fmt(total) + ' (' + pct + ' %)</strong></div>' +
+                    '<div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden"><div class="h-2 ' + (settled ? 'bg-emerald-500' : 'bg-amber-500') + '" style="width:' + pct + '%"></div></div>' +
+                    '<div class="flex justify-between"><span>' + T.left + '</span><strong class="font-mono text-slate-100">' + fmt(Math.max(0, total - paid) * inst) + ' MRU</strong></div>' +
+                    '<div class="' + (settled ? 'text-emerald-400' : 'text-slate-400') + '">' + (msg || (settled ? T.settledMsg : (paid ? '' : T.nothing))) + '</div>';
+            }
+            // Écran du terminal : verrouillé / actif / soldé
+            const header = document.getElementById('deviceStatusHeader'), text = document.getElementById('statusText'), icon = document.getElementById('statusIcon'), days = document.getElementById('daysRemainingVal'), otp = document.getElementById('otpDisplay');
+            const base = 'flex items-center justify-center gap-2 py-1.5 px-3 rounded-full text-xs font-bold mb-3 ';
+            if (settled) {
+                header.className = base + 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40';
+                text.innerText = T.settledStatus;
+                icon.className = 'fa-solid fa-lock-open text-5xl text-emerald-400 transition-transform duration-300 scale-110';
+                days.className = 'text-3xl font-extrabold text-emerald-400 font-mono my-0.5';
+                days.innerHTML = '∞ <span>' + T.unlimited + '</span>';
+                otp.innerText = T.otpDone;
+            } else if (paid > 0) {
+                header.className = base + 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40';
+                text.innerText = i18n[currentLang].statusActive;
+                icon.className = 'fa-solid fa-solar-panel text-5xl text-emerald-400 transition-transform duration-300 scale-110';
+                days.className = 'text-3xl font-extrabold text-slate-300 font-mono my-0.5';
+                days.innerHTML = remainingDays + ' <span data-key="unitDays">' + i18n[currentLang].unitDays + '</span>';
+            } else {
+                header.className = base + 'bg-red-500/20 text-red-400 border border-red-500/40';
+                text.innerText = i18n[currentLang].statusLocked;
+                icon.className = 'fa-solid fa-lock text-5xl text-red-500 transition-transform duration-300';
+                days.className = 'text-3xl font-extrabold text-slate-300 font-mono my-0.5';
+                days.innerHTML = '0 <span data-key="unitDays">' + i18n[currentLang].unitDays + '</span>';
+                otp.innerText = 'OTP : ---- ----';
+            }
+            // Boutons de paiement : désactivés une fois le contrat soldé
+            const payBtn = document.getElementById('payBtn');
+            const quick = document.querySelectorAll('#module-iot button[onclick^="simulatePaymentWithAmount"]');
+            quick.forEach((b) => { b.disabled = settled; b.classList.toggle('opacity-40', settled); b.classList.toggle('cursor-not-allowed', settled); });
+            if (payBtn && !payBtn.dataset.busy) {
+                payBtn.disabled = settled;
+                payBtn.classList.toggle('opacity-50', settled);
+                payBtn.classList.toggle('cursor-not-allowed', settled);
+                document.getElementById('payBtnText').innerText = settled ? T.settledBtn : i18n[currentLang].btnPayAction;
+            }
+        }
+
         function simulatePaymentWithAmount(amt) {
             const payBtn = document.getElementById('payBtn');
             const payBtnText = document.getElementById('payBtnText');
 
+            // Contrat déjà soldé ou non calculé : aucun paiement supplémentaire n'est accepté
+            if (!paymentPlan.total || paymentPlan.paid >= paymentPlan.total) { renderPaymentPlan(); return; }
+
             payBtn.disabled = true;
+            payBtn.dataset.busy = '1';
             payBtnText.innerText = (currentLang === 'ar' ? "جاري المعالجة مع " : "Traitement avec ") + selectedProvider.toUpperCase() + "...";
 
             setTimeout(() => {
+                delete payBtn.dataset.busy;
                 payBtn.disabled = false;
                 payBtnText.innerText = i18n[currentLang].btnPayAction;
 
-                const perInst = { daily: 1, weekly: 7, monthly: 30 }[window.__freq || 'weekly'];
-                const instAmt = window.__lastInstallment || amt || 1;
-                const daysAdded = Math.max(1, Math.floor(amt / instAmt)) * perInst;
-                remainingDays += daysAdded;
+                const T = planText[currentLang] || planText.fr;
+                const perInst = periodDays();
+                const instAmt = Math.max(1, Math.round(window.__lastInstallment || amt || 1));
+                const remaining = paymentPlan.total - paymentPlan.paid;
+                const asked = Math.max(1, Math.floor(amt / instAmt + 1e-9));
+                const n = Math.min(asked, remaining);          // jamais plus que les échéances restantes
+                paymentPlan.paid += n;
+                remainingDays += n * perInst;
 
-                document.getElementById('daysRemainingVal').innerHTML = remainingDays + ` <span data-key="unitDays">${i18n[currentLang].unitDays}</span>`;
-                
-                const statusHeader = document.getElementById('deviceStatusHeader');
-                const statusText = document.getElementById('statusText');
-                const statusIcon = document.getElementById('statusIcon');
+                const msg = n < asked ? T.capped(n, n * instAmt, asked * instAmt) : T.ok(n, n * instAmt);
+                renderPaymentPlan(msg);
 
-                statusHeader.className = "flex items-center justify-center gap-2 py-1.5 px-3 rounded-full text-xs font-bold mb-3 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40";
-                statusText.innerText = i18n[currentLang].statusActive;
-                statusIcon.className = "fa-solid fa-solar-panel text-5xl text-emerald-400 transition-transform duration-300 scale-110";
-
-                const otp = Math.floor(1000 + Math.random() * 9000) + " " + Math.floor(1000 + Math.random() * 9000);
-                document.getElementById('otpDisplay').innerText = "OTP : " + otp;
-
+                if (paymentPlan.paid < paymentPlan.total) {
+                    const otp = Math.floor(1000 + Math.random() * 9000) + " " + Math.floor(1000 + Math.random() * 9000);
+                    document.getElementById('otpDisplay').innerText = "OTP : " + otp;
+                }
             }, 1000);
         }
 
@@ -1524,6 +1636,7 @@
             recalculateFinancialModel();
             loadTeam();
             loadSurveyResults();
+            if (window.HypDB) window.HypDB.load(); // hypothèses du modèle : lecture / sauvegarde en base de données
         };
     </script>
 </body>
