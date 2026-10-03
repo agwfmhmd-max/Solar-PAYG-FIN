@@ -59,7 +59,7 @@
       verdict: 'Lecture des résultats', vPos: 'VAN positive dans {k} scénario(s) sur 3.', vNeg: 'VAN négative dans le scénario sélectionné : sous ces hypothèses, le projet ne crée pas de valeur.', vPos2: 'VAN positive dans le scénario sélectionné sous ces hypothèses.',
       vCaveat: 'Ces résultats dépendent d’hypothèses non encore validées (coûts, impayés, financement) : ils servent à tester la faisabilité, ils ne la prouvent pas.',
       vAfford: 'Attention : l’équivalent mensuel du kit ({m}) dépasse le budget que déclarent pouvoir payer la plupart des répondants ({p} seulement le couvrent).',
-      asmTitle: 'Hypothèses du modèle', asmCols: ['Paramètre', 'Valeur', 'Unité', 'Source', 'Date', 'Type'], filterAll: 'Tous', export: 'Exporter les résultats', exCSV: 'CSV', exXLSX: 'Excel', exPDF: 'PDF (impression)', exJSON: 'Paramètres Enquête → Prototype (JSON)',
+      asmTitle: 'Hypothèses du modèle', asmCols: ['Paramètre', 'Valeur', 'Unité', 'Source', 'Date', 'Type'], filterAll: 'Tous', export: 'Exporter les résultats', exCSV: 'CSV', exXLSX: 'Excel', exPDF: 'PDF (impression)', exDOCX: 'Word (rapport)', exJSON: 'Paramètres Enquête → Prototype (JSON)',
       params: 'Paramètres transmis au prototype', navAsm: 'Hypothèses & Export', asmDesc: 'Chaque donnée est classée : donnée réelle de l’enquête, estimation, donnée externe vérifiée, hypothèse ou simulation. Les mêmes chiffres alimentent le rapport Word et le PowerPoint.', legend: 'Classification des données', printTitle: 'Étude de faisabilité — synthèse des résultats'
     },
     ar: {
@@ -98,7 +98,7 @@
       verdict: 'قراءة النتائج', vPos: 'قيمة حالية صافية موجبة في {k} سيناريو من 3.', vNeg: 'القيمة الحالية الصافية سالبة في السيناريو المختار: وفق هذه الفرضيات لا يخلق المشروع قيمة.', vPos2: 'القيمة الحالية الصافية موجبة في السيناريو المختار وفق هذه الفرضيات.',
       vCaveat: 'تعتمد هذه النتائج على فرضيات لم تُثبت بعد: فهي تختبر الجدوى ولا تثبتها.',
       vAfford: 'تنبيه: المعادل الشهري ({m}) يتجاوز ما يصرّح معظم المجيبين بقدرتهم على دفعه ({p} فقط يغطونه).',
-      asmTitle: 'فرضيات النموذج', asmCols: ['المعامل', 'القيمة', 'الوحدة', 'المصدر', 'التاريخ', 'النوع'], filterAll: 'الكل', export: 'تصدير النتائج', exCSV: 'CSV', exXLSX: 'Excel', exPDF: 'PDF (طباعة)', exJSON: 'معاملات الاستبيان ← النموذج (JSON)',
+      asmTitle: 'فرضيات النموذج', asmCols: ['المعامل', 'القيمة', 'الوحدة', 'المصدر', 'التاريخ', 'النوع'], filterAll: 'الكل', export: 'تصدير النتائج', exCSV: 'CSV', exXLSX: 'Excel', exPDF: 'PDF (طباعة)', exDOCX: 'Word (تقرير)', exJSON: 'معاملات الاستبيان ← النموذج (JSON)',
       params: 'المعاملات المنقولة إلى النموذج', navAsm: 'الفرضيات والتصدير', asmDesc: 'كل معطى مصنف: فعلي من الاستبيان، تقدير، معطى خارجي موثق، فرضية أو محاكاة. الأرقام نفسها تغذي تقرير Word وعرض PowerPoint.', legend: 'تصنيف البيانات', printTitle: 'دراسة الجدوى — ملخص النتائج'
     }
   };
@@ -376,6 +376,9 @@
     else if (kind === 'xlsx') {
       const run = () => { const wb = XLSX.utils.book_new(); Object.keys(sheets).forEach((n) => XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheets[n]), n.slice(0, 31))); XLSX.writeFile(wb, 'etude_faisabilite_payg_' + stamp() + '.xlsx'); };
       if (window.XLSX) run(); else { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'; s.onload = run; s.onerror = () => alert('Excel indisponible hors connexion : utilisez le CSV.'); document.head.appendChild(s); }
+    } else if (kind === 'docx') {
+      if (!window.PaygWord) { alert(lang() === 'ar' ? 'تعذر تحميل مُصدِّر Word.' : 'Export Word indisponible.'); return; }
+      download('rapport_etude_faisabilite_payg_' + stamp() + '.docx', new Blob(window.PaygWord.build(sheets, { lang: lang(), title: t().printTitle, modelDate: E.MODEL_DATE }), { type: window.PaygWord.MIME }));
     } else if (kind === 'pdf') {
       let h = '<h1 style="font-size:18px;margin:0 0 4px">' + esc(t().printTitle) + '</h1><p style="font-size:11px;margin:0 0 12px">' + esc(E.MODEL_DATE) + ' — ' + esc(lang() === 'ar' ? 'جميع البيانات مصنفة: فعلية / تقدير / فرضية / محاكاة.' : 'chaque donnée est classée : enquête / estimation / hypothèse / simulation.') + '</p>';
       Object.keys(sheets).forEach((n) => { h += '<h2 style="font-size:13px;margin:14px 0 4px">' + esc(n.replace(/_/g, ' ')) + '</h2><table style="border-collapse:collapse;width:100%;font-size:9px">' + sheets[n].map((row, i) => '<tr>' + row.map((c) => '<' + (i ? 'td' : 'th') + ' style="border:1px solid #999;padding:2px 4px;text-align:left">' + esc(c) + '</' + (i ? 'td' : 'th') + '>').join('') + '</tr>').join('') + '</table>'; });

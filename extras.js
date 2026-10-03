@@ -33,6 +33,17 @@
   const readP = () => { try { const o = JSON.parse(localStorage.getItem(PK) || 'null'); if (o && Array.isArray(o.list)) return migP(o); } catch (e) { /* ignore */ } return { list: [], active: null }; };
   const writeP = (o) => { if (window.HypDB) window.HypDB.saveProfiles(o); try { localStorage.setItem(PK, JSON.stringify(o)); return true; } catch (e) { alert(L('Enregistrement impossible (stockage du navigateur indisponible).', 'تعذر الحفظ (تخزين المتصفح غير متاح).')); return false; } };
   const snap = (s) => JSON.stringify({ g: s.g, sc: s.sc });
+  /* Nom du jeu : commence toujours par le nom du superviseur connecté (« MDA — … ») */
+  const SEP = ' — ';
+  const supName = () => { try { const u = window.PaygAuth && window.PaygAuth.user(); return u && u.name ? u.name : ''; } catch (e) { return ''; } };
+  const supNames = () => { try { return (APP_CONFIG.AUTH_USERS || []).map((u) => u.name); } catch (e) { return []; } };
+  function withSup(name) {
+    const me = supName(); name = String(name == null ? '' : name).trim(); if (!me) return name;
+    const rx = (n) => new RegExp('^\\s*' + n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*[—-]\\s*', 'i');
+    supNames().concat([me]).forEach((n) => { name = name.replace(rx(n), ''); }); // retire un ancien préfixe (le jeu d'un autre superviseur n'est pas écrasé)
+    name = name.replace(/^\s*[—-]\s*/, '').trim();
+    return me + SEP + name;
+  }
   function applyProfile(name) {
     const ns = E.defaultState(), P = readP(), p = name == null ? null : P.list.find((x) => x.name === name);
     if (p) { Object.assign(ns.g, p.g); Object.keys(ns.sc).forEach((k) => Object.assign(ns.sc[k], (p.sc || {})[k] || {})); }
@@ -42,8 +53,11 @@
   }
   function saveProfile() {
     const P = readP(), st = window.StudyUI.getState();
-    let name = prompt(L('Nom du jeu d’hypothèses à enregistrer :', 'اسم مجموعة الفرضيات المراد حفظها:'), P.active || '');
-    if (name == null) return; name = name.trim().slice(0, 60); if (!name) return;
+    const me = supName();
+    let name = prompt(L('Nom du jeu d’hypothèses à enregistrer :', 'اسم مجموعة الفرضيات المراد حفظها:') + (me ? '\n' + L('(le nom du superviseur « ' + me + ' » est ajouté au début automatiquement)', '(يُضاف اسم المشرف «' + me + '» تلقائيًا في البداية)') : ''), P.active ? withSup(P.active) : (me ? me + SEP : ''));
+    if (name == null) return; name = name.trim();
+    if (!name || (me && withSup(name) === me + SEP)) return; // nom vide (préfixe seul) : rien à enregistrer
+    name = withSup(name).slice(0, 60);
     const i = P.list.findIndex((x) => x.name.toLowerCase() === name.toLowerCase());
     if (i >= 0 && !confirm(L('Un jeu nommé « ' + P.list[i].name + ' » existe déjà. Le remplacer ?', 'توجد مجموعة بنفس الاسم. هل تريد استبدالها؟'))) return;
     const rec = { name: i >= 0 ? P.list[i].name : name, saved: new Date().toISOString(), g: JSON.parse(JSON.stringify(st.g)), sc: JSON.parse(JSON.stringify(st.sc)) };
@@ -61,7 +75,7 @@
     const P = readP(), st = window.StudyUI.getState(), list = P.list.map((x) => ({ name: x.name, saved: x.saved, g: x.g, sc: x.sc }));
     const act = P.list.find((x) => x.name === P.active);
     const cur = JSON.parse(snap(st)), ref = act ? JSON.stringify({ g: act.g, sc: act.sc }) : null;
-    if (!act || JSON.stringify(cur) !== ref) { const d = new Date(); list.push({ name: L('Session en cours', 'الجلسة الحالية') + ' ' + d.toISOString().slice(0, 10), saved: d.toISOString(), g: cur.g, sc: cur.sc }); }
+    if (!act || JSON.stringify(cur) !== ref) { const d = new Date(); list.push({ name: withSup(L('Session en cours', 'الجلسة الحالية') + ' ' + d.toISOString().slice(0, 10)), saved: d.toISOString(), g: cur.g, sc: cur.sc }); }
     const blob = new Blob([JSON.stringify({ format: FMT, version: 1, exported: new Date().toISOString(), profiles: list }, null, 2)], { type: 'application/json' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'hypotheses_payg_' + new Date().toISOString().slice(0, 10) + '.json'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
   }

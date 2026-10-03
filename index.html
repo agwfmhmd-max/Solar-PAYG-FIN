@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <script>try{if(localStorage.getItem("payg_theme")==="light"){document.documentElement.classList.remove("dark");document.documentElement.classList.add("light");}}catch(e){}</script>
+    <script>document.documentElement.classList.add("auth-locked");</script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Solar PAYG Mauritanie - Prototype FinTech & Énergie</title>
+    <link rel="icon" type="image/svg+xml" href="logo.svg">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -40,6 +42,20 @@
         
         .font-fr { font-family: 'Inter', sans-serif; }
         .font-ar { font-family: 'Cairo', sans-serif; }
+
+
+        /* ===== ÉCRAN DE CONNEXION DES SUPERVISEURS ===== */
+        html.auth-locked { overflow: hidden; }
+        html.auth-locked body > *:not(#loginGate) { visibility: hidden !important; }
+        #loginGate { display: none; position: fixed; inset: 0; z-index: 1000; align-items: center; justify-content: center; padding: 1rem; overflow-y: auto; visibility: visible; }
+        html.auth-locked #loginGate { display: flex; }
+        #loginGate .lg-field { width: 100%; background: #0f172a; color: #f1f5f9; border: 1px solid #334155; border-radius: .75rem; padding: .7rem .9rem; font-size: .9rem; outline: none; transition: border-color .15s, box-shadow .15s; }
+        #loginGate .lg-field:focus { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,.25); }
+        html.light #loginGate .lg-field { background: #ffffff; color: #0f172a; border-color: #cbd5e1; }
+        #loginGate .lg-eye { position: absolute; top: 0; bottom: 0; width: 2.75rem; display: flex; align-items: center; justify-content: center; color: #94a3b8; }
+        html[dir="ltr"] #loginGate .lg-eye { right: 0; } html[dir="rtl"] #loginGate .lg-eye { left: 0; }
+        html[dir="ltr"] #loginGate #lgPwd { padding-right: 2.75rem; } html[dir="rtl"] #loginGate #lgPwd { padding-left: 2.75rem; }
+        #loginGate .lg-eye:focus-visible, #loginGate button:focus-visible { outline: 2px solid #f59e0b; outline-offset: 2px; }
 
         #printArea { display: none; }
         @media print { body > *:not(#printArea) { display: none !important; } #printArea { display: block !important; color: #000; background: #fff; padding: 12px; font-family: Arial, sans-serif; } }
@@ -80,15 +96,44 @@
 </head>
 <body id="bodyTag" class="font-fr bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-900">
 
+    <!-- Écran de connexion des superviseurs (Supabase Auth) : affiché tant que personne n'est connecté -->
+    <div id="loginGate" class="bg-slate-950" role="dialog" aria-modal="true" aria-labelledby="lgTitle">
+        <button type="button" id="lgLang" class="absolute top-4 ltr:right-4 rtl:left-4 bg-gradient-to-r from-amber-500 to-emerald-600 hover:from-amber-600 hover:to-emerald-700 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs sm:text-sm shadow-md transition flex items-center gap-2">
+            <i class="fa-solid fa-globe"></i><span id="lgLangTxt">العربية</span>
+        </button>
+        <div class="w-full max-w-sm">
+            <div class="flex flex-col items-center text-center mb-6">
+                <img src="logo.svg" alt="Logo Solar PAYG Mauritanie" width="88" height="88" class="w-22 h-22 mb-4 drop-shadow-xl" style="width:5.5rem;height:5.5rem">
+                <h1 class="font-bold text-xl text-white flex items-center gap-2"><span>Solar PAYG Mauritanie</span><span class="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono">2027</span></h1>
+                <p class="text-sm text-slate-300 mt-3 font-semibold" id="lgTitle">Accès réservé aux superviseurs</p>
+                <p class="text-xs text-slate-400 mt-1" id="lgSub">Choisissez votre nom puis saisissez votre mot de passe.</p>
+            </div>
+            <form id="lgForm" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4" novalidate>
+                <div>
+                    <label for="lgUser" class="block text-xs font-semibold text-slate-300 mb-1.5" id="lgUserLbl">Superviseur</label>
+                    <select id="lgUser" class="lg-field" autocomplete="username"></select>
+                </div>
+                <div>
+                    <label for="lgPwd" class="block text-xs font-semibold text-slate-300 mb-1.5" id="lgPwdLbl">Mot de passe</label>
+                    <div class="relative">
+                        <input id="lgPwd" type="password" class="lg-field" autocomplete="current-password" dir="ltr">
+                        <button type="button" id="lgEye" class="lg-eye" aria-label="Afficher le mot de passe"><i id="lgEyeIcon" class="fa-solid fa-eye"></i></button>
+                    </div>
+                </div>
+                <div id="lgError" class="hidden p-3 border border-red-500/30 bg-red-500/10 text-red-300 rounded-xl text-xs" role="alert"></div>
+                <button type="submit" id="lgSubmit" class="w-full bg-gradient-to-r from-amber-500 to-emerald-600 hover:from-amber-600 hover:to-emerald-700 disabled:opacity-60 text-slate-950 font-bold py-2.5 rounded-xl text-sm shadow-md transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-right-to-bracket"></i><span id="lgSubmitTxt">Se connecter</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+
     <!-- En-tête principal -->
     <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap justify-between items-center gap-4">
             <div class="flex items-center space-x-3 rtl:space-x-reverse">
-                <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-amber-500 via-emerald-500 to-blue-600 p-0.5 flex items-center justify-center shadow-lg">
-                    <div class="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center">
-                        <i class="fa-solid fa-solar-panel text-amber-400 text-xl"></i>
-                    </div>
-                </div>
+                <img src="logo.svg" alt="Logo Solar PAYG Mauritanie" width="48" height="48" class="w-12 h-12 shrink-0 drop-shadow-lg">
                 <div>
                     <h1 class="font-bold text-lg sm:text-xl text-white tracking-wide flex items-center gap-2">
                         <span>Solar PAYG Mauritanie</span>
@@ -108,6 +153,13 @@
                     <i class="fa-solid fa-globe"></i>
                     <span id="langBtnLabel">العربية</span>
                 </button>
+
+                <!-- Superviseur connecté + déconnexion -->
+                <div id="authChip" class="hidden items-center gap-2 bg-slate-800/80 border border-slate-700/60 pl-3 pr-1.5 py-1.5 rounded-xl text-xs text-slate-200">
+                    <i class="fa-solid fa-user-shield text-emerald-400"></i>
+                    <strong id="authName" class="font-bold"></strong>
+                    <button type="button" id="authLogout" class="bg-slate-700/70 hover:bg-slate-600 border border-slate-600 rounded-lg px-2.5 py-1 transition flex items-center gap-1.5"><i class="fa-solid fa-right-from-bracket"></i><span id="authLogoutTxt">Déconnexion</span></button>
+                </div>
 
                 <div class="hidden md:flex items-center gap-2 bg-slate-800/80 border border-slate-700/60 px-3 py-1.5 rounded-lg text-xs">
                     <i class="fa-solid fa-shield-halved text-emerald-400"></i>
@@ -645,6 +697,7 @@
                     <button type="button" data-export="csv" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700"><i class="fa-solid fa-file-csv mx-1 text-emerald-400"></i><span data-k2="exCSV"></span></button>
                     <button type="button" data-export="xlsx" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700"><i class="fa-solid fa-file-excel mx-1 text-emerald-400"></i><span data-k2="exXLSX"></span></button>
                     <button type="button" data-export="pdf" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700"><i class="fa-solid fa-file-pdf mx-1 text-red-400"></i><span data-k2="exPDF"></span></button>
+                    <button type="button" data-export="docx" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700"><i class="fa-solid fa-file-word mx-1 text-blue-400"></i><span data-k2="exDOCX"></span></button>
                     <button type="button" data-export="json" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700"><i class="fa-solid fa-code mx-1 text-cyan-400"></i><span data-k2="exJSON"></span></button>
                 </div>
                 <details><summary class="cursor-pointer text-[11px] text-slate-400" data-k2="params"></summary><pre id="paramsJson" class="mt-2 text-[10px] text-slate-400 bg-slate-900 border border-slate-800 rounded-lg p-3 overflow-x-auto"></pre></details>
@@ -672,13 +725,15 @@
     <!-- Pied de page strict avec l'année 2027 -->
     <footer class="border-t border-slate-800 bg-slate-900 py-6 text-center text-xs text-slate-500">
         <div class="max-w-7xl mx-auto px-4">
-            <p class="font-medium text-slate-400" id="footerCopyright">© 2027 Solar PAYG Mauritanie — Tous droits réservés.</p>
-            <p class="mt-1 text-[11px] text-slate-600" id="footerSub">Prototype interactif d'étude de faisabilité d'entreprise pour le département Banque & Assurance.</p>
+            <p class="font-medium text-slate-400" id="footerCopyright" data-key="footerCopyright">© 2027 Solar PAYG Mauritanie — MDA — Tous droits réservés.</p>
+            <p class="mt-1 text-[11px] text-slate-600" id="footerSub" data-key="footerSub">Prototype interactif d'étude de faisabilité d'entreprise pour le Département Management, Economie et Droit.</p>
         </div>
     </footer>
 
     <script src="extras.js"></script>
     <script src="hypdb.js"></script>
+    <script src="wordexport.js"></script>
+    <script src="auth.js"></script>
     <script>
         // Dictionary of translations
         let currentLang = 'fr';
@@ -788,8 +843,8 @@
                 teamError: "Impossible de charger les membres de l'équipe pour le moment.",
                 teamEmpty: "Aucun membre n'est encore configuré.",
                 teamFallbackRole: "Membre de l'équipe de recherche",
-                footerCopyright: "© 2027 Solar PAYG Mauritanie — Tous droits réservés.",
-                footerSub: "Prototype interactif d'étude de faisabilité d'entreprise pour le département Banque & Assurance."
+                footerCopyright: "© 2027 Solar PAYG Mauritanie — MDA — Tous droits réservés.",
+                footerSub: "Prototype interactif d'étude de faisabilité d'entreprise pour le Département Management, Economie et Droit."
             },
             ar: {
                 headerSubtitle: "تمويل الطاقة الشمسية بالدفع المسبق (PAYG): التنقيط الائتماني، التأمين الأصغر والدفع عبر الهاتف",
@@ -895,8 +950,8 @@
                 teamError: "تعذّر تحميل أعضاء الفريق حاليًا.",
                 teamEmpty: "لا يوجد أعضاء مهيؤون بعد.",
                 teamFallbackRole: "عضو في فريق البحث",
-                footerCopyright: "© 2027 Solar PAYG Mauritanie — جميع الحقوق محفوظة.",
-                footerSub: "نموذج أولي وتطبيقي لدراسة جدوى المشاريع - تخصص البنوك والتأمين."
+                footerCopyright: "© 2027 Solar PAYG Mauritanie — MDA — جميع الحقوق محفوظة.",
+                footerSub: "نموذج أولي وتطبيقي لدراسة جدوى المشاريع - قسم الإدارة والاقتصاد والقانون (Management, Economie et Droit)."
             }
         };
 
@@ -1354,7 +1409,17 @@
         const APP_CONFIG = {
             SUPABASE_URL: "https://xposdpygdmivhgcbisjl.supabase.co",       // ex. https://xxxxxxxx.supabase.co  (même projet que la plateforme d'enquête)
             SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhwb3NkcHlnZG1pdmhnY2Jpc2psIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1NzAxMzIsImV4cCI6MjEwMjE0NjEzMn0.dAdRduHZbxGCsoFr6rC72nf8LIYJkZxFNNKNpwv9hqo",  // clé « anon / public » du projet Supabase
-            SURVEY_SLUG: "solar-payg-mauritanie-2027"
+            SURVEY_SLUG: "solar-payg-mauritanie-2027",
+            // Connexion des superviseurs : un seul compte « User » existe dans Supabase (Authentication > Users).
+            // AUTH_EMAIL = e-mail de ce compte ; le mot de passe n'est JAMAIS écrit ici (vérifié par Supabase).
+            // AUTH_USERS = noms proposés dans la liste de connexion ; le nom choisi est utilisé pour préfixer les jeux d'hypothèses.
+            AUTH_EMAIL: "agwfmhmd@gmail.com",
+            AUTH_USERS: [
+                { name: "MDA" },
+                { name: "ELHOUSSEIN" },
+                { name: "TOUTOU" },
+                { name: "Neine" }
+            ]
         };
 
         const RESULT_COLORS = ['#3b82f6', '#f59e0b', '#a855f7', '#06b6d4', '#ec4899', '#84cc16'];
