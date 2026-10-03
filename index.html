@@ -2,6 +2,7 @@
 <html lang="fr" class="dark" id="htmlTag">
 <head>
     <meta charset="UTF-8">
+    <script>try{if(localStorage.getItem("payg_theme")==="light"){document.documentElement.classList.remove("dark");document.documentElement.classList.add("light");}}catch(e){}</script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Solar PAYG Mauritanie - Prototype FinTech & Énergie</title>
     <!-- Tailwind CSS CDN -->
@@ -49,6 +50,32 @@
         }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
+        /* ===== MODE CLAIR (activé par html.light ; le mode sombre reste inchangé) ===== */
+        html.light { color-scheme: light; } html.dark { color-scheme: dark; }
+        html.light body#bodyTag { background: #eef2f7; color: #0f172a; }
+        html.light .bg-slate-950 { background-color: #f8fafc; }
+        html.light .bg-slate-900, html.light .bg-slate-900\/90 { background-color: #ffffff; }
+        html.light header.sticky { background-color: rgba(255,255,255,.92); }
+        html.light .bg-slate-800, html.light [class*="bg-slate-800/"] { background-color: #e2e8f0; }
+        html.light .bg-slate-700, html.light .hover\:bg-slate-700:hover, html.light .hover\:bg-slate-800:hover { background-color: #cbd5e1; }
+        html.light .border-slate-800, html.light [class*="border-slate-800/"] { border-color: #e2e8f0; }
+        html.light .border-slate-700, html.light [class*="border-slate-700/"] { border-color: #cbd5e1; }
+        html.light .border-slate-600 { border-color: #94a3b8; }
+        html.light .text-white, html.light .text-slate-100, html.light .text-slate-200 { color: #0f172a; }
+        html.light .text-slate-300 { color: #334155; } html.light .text-slate-400 { color: #475569; }
+        html.light .text-slate-500, html.light .text-slate-600 { color: #64748b; } html.light .text-slate-800 { color: #e2e8f0; }
+        html.light .text-amber-400, html.light .text-amber-400\/90 { color: #b45309; } html.light .text-amber-300, html.light .text-amber-200 { color: #92400e; }
+        html.light .text-emerald-400, html.light .text-emerald-300 { color: #047857; } html.light .text-blue-400, html.light .text-blue-300 { color: #1d4ed8; }
+        html.light .text-purple-400 { color: #7e22ce; } html.light .text-purple-200 { color: #6b21a8; }
+        html.light .text-cyan-400, html.light .text-cyan-300 { color: #0e7490; } html.light .text-sky-300 { color: #0369a1; }
+        html.light .text-rose-400 { color: #be123c; } html.light .text-red-400, html.light .text-red-300 { color: #b91c1c; } html.light .text-teal-400 { color: #0f766e; }
+        html.light .bg-emerald-600.text-white, html.light #payBtn, html.light #payBtn * , html.light #profSave { color: #ffffff; }
+        html.light select, html.light input[type="text"], html.light input[type="number"] { background-color: #ffffff; color: #0f172a; }
+        html.light section.bg-gradient-to-r { background-image: linear-gradient(to right, #ffffff, #f1f5f9, #ffffff); }
+        html.light .from-emerald-950\/40 { background-image: linear-gradient(to right, rgba(209,250,229,.8), rgba(241,245,249,.9)); }
+        html.light #deviceScreen, html.light .shadow-xl { box-shadow: 0 4px 14px rgba(15,23,42,.08); }
+        html.light ::-webkit-scrollbar-track { background: #e2e8f0; } html.light ::-webkit-scrollbar-thumb { background: #94a3b8; }
     </style>
 </head>
 <body id="bodyTag" class="font-fr bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-900">
@@ -73,6 +100,9 @@
 
             <!-- Boutons & Indicateurs -->
             <div class="flex items-center space-x-3 sm:space-x-4 rtl:space-x-reverse">
+                <!-- Jeux d'hypothèses + thème -->
+                <button type="button" id="profChip" class="hidden sm:flex items-center gap-2 bg-slate-800/80 border border-slate-700/60 px-3 py-2 rounded-xl text-xs text-slate-200 hover:bg-slate-700 transition" title="Hypothèses / الفرضيات"><i class="fa-solid fa-layer-group text-amber-400"></i><span id="profChipLabel">Défaut</span></button>
+                <button type="button" id="themeBtn" class="bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-200 w-10 h-10 rounded-xl transition flex items-center justify-center"><i id="themeIcon" class="fa-solid fa-sun"></i></button>
                 <!-- Bouton de commutation de langue -->
                 <button onclick="toggleLanguage()" class="bg-gradient-to-r from-amber-500 to-emerald-600 hover:from-amber-600 hover:to-emerald-700 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs sm:text-sm shadow-md transition flex items-center gap-2">
                     <i class="fa-solid fa-globe"></i>
@@ -249,6 +279,7 @@
                 <h4 class="text-xs font-bold text-amber-400 mb-2" data-k2="scoreVarsTitle"></h4>
                 <div class="overflow-x-auto"><table class="w-full text-[11px]"><thead><tr class="text-slate-500"><th class="py-1 px-2 text-start" data-k2="scoreVarName"></th><th class="py-1 px-2 text-start" data-k2="scoreVarStatus"></th></tr></thead><tbody id="scoreVarsBody"></tbody></table></div>
             </div>
+            <div id="scoreMethodRoot" class="mt-4"></div>
         </section>
 
         <!-- MODULE 2 : Tarification PAYG, Référence Unique & Assurance -->
@@ -377,6 +408,7 @@
                 </div>
             </div>
             <div id="pricingStudyRoot" class="mt-6"></div>
+            <div id="priceMethodRoot" class="mt-4"></div>
         </section>
 
         <!-- MODULE 3 : Simulation IoT & Paiement Mobile Mauritanien -->
@@ -493,6 +525,8 @@
                 </p>
             </div>
 
+            <div id="hypProfilesRoot"></div>
+
             <!-- Hypothèses modifiables (générées par study.js : trois scénarios, CAPEX, coûts fixes, coûts variables) -->
             <div class="bg-slate-950 p-5 border border-slate-800 rounded-xl">
                 <h4 class="text-xs font-bold text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-2"><i class="fa-solid fa-sliders"></i><span data-key="finInputsTitle">Hypothèses d'Investissement Modifiables (Paramètres d'Entrée)</span></h4>
@@ -550,6 +584,7 @@
                 <div id="finYearTable" class="bg-slate-950 border border-slate-800 p-4 rounded-xl"></div>
                 <div id="finCompTable" class="bg-slate-950 border border-slate-800 p-4 rounded-xl"></div>
             </div>
+            <div id="finMethodRoot"></div>
         </section>
 
         <!-- MODULE 5 : Résultats de l'enquête (base de données Supabase) -->
@@ -587,6 +622,7 @@
 
             <div id="surveyStatusMsg" class="hidden"></div>
             <div id="marketStudyRoot" class="space-y-4"></div>
+            <div id="surveyMethodRoot"></div>
             <details class="bg-slate-950 border border-slate-800 rounded-xl p-4">
                 <summary class="cursor-pointer text-xs font-bold text-slate-300" data-k2="detail"></summary>
                 <div id="surveyResultsGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4"></div>
@@ -638,6 +674,7 @@
         </div>
     </footer>
 
+    <script src="extras.js"></script>
     <script>
         // Dictionary of translations
         let currentLang = 'fr';
@@ -1185,7 +1222,7 @@
                     scales: {
                         y: {
                             grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                            ticks: { color: '#94a3b8', font: { size: 10 } }
+                            ticks: { color: (window.themeColors ? window.themeColors().tick : '#94a3b8'), font: { size: 10 } }
                         },
                         x: {
                             grid: { display: false },

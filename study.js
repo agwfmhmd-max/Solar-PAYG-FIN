@@ -123,16 +123,17 @@
 
   /* ---------- Graphiques ---------- */
   const COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#a855f7', '#06b6d4', '#ec4899', '#84cc16', '#f97316'];
+  const TC = () => (window.themeColors ? window.themeColors() : { tick: '#94a3b8', grid: 'rgba(255,255,255,.05)', edge: '#0f172a' });
   function killCharts() { charts.forEach((c) => { try { c.destroy(); } catch (e) { /* ignore */ } }); charts = []; }
   function chart(id, type, labels, data, title) {
     const el = $(id); if (!el || typeof Chart === 'undefined') return;
     const isPie = type === 'doughnut';
     charts.push(new Chart(el.getContext('2d'), {
-      type, data: { labels, datasets: [{ data, backgroundColor: isPie ? COLORS : COLORS[0] + 'cc', borderColor: isPie ? '#0f172a' : COLORS[0], borderWidth: isPie ? 2 : 1, borderRadius: isPie ? 0 : 6 }] },
+      type, data: { labels, datasets: [{ data, backgroundColor: isPie ? COLORS : COLORS[0] + 'cc', borderColor: isPie ? TC().edge : COLORS[0], borderWidth: isPie ? 2 : 1, borderRadius: isPie ? 0 : 6 }] },
       options: {
         responsive: true, maintainAspectRatio: false, indexAxis: type === 'bar' && labels.length > 5 ? 'y' : 'x',
-        plugins: { legend: { display: isPie, position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 10 } }, tooltip: { callbacks: { label: (c) => ' ' + nf(c.parsed.y != null && !isPie ? (c.chart.options.indexAxis === 'y' ? c.parsed.x : c.parsed.y) : c.parsed, 1) + ' %' } } },
-        scales: isPie ? {} : { x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } }, y: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } } } }
+        plugins: { legend: { display: isPie, position: 'bottom', labels: { color: TC().tick, font: { size: 10 }, boxWidth: 10 } }, tooltip: { callbacks: { label: (c) => ' ' + nf(c.parsed.y != null && !isPie ? (c.chart.options.indexAxis === 'y' ? c.parsed.x : c.parsed.y) : c.parsed, 1) + ' %' } } },
+        scales: isPie ? {} : { x: { grid: { display: false }, ticks: { color: TC().tick, font: { size: 10 } } }, y: { grid: { color: TC().grid }, ticks: { color: TC().tick, font: { size: 10 } } } }
       }
     }));
   }
@@ -250,6 +251,7 @@
     } else h += '<p class="text-[11px] text-slate-500">' + esc(L.noSurveyYet) + '</p>';
     h += '</div></div>';
     root.innerHTML = h;
+    if (window.Extras) window.Extras.render();
   }
 
   function refreshPayButtons() {
@@ -336,7 +338,7 @@
       ds.borderColor = names.map((k) => (results[k].npv >= 0 ? '#10b981' : '#ef4444'));
       vanChartInstance.update();
     }
-    renderPricing(); renderAssumptions(); renderMarketDemandOnly();
+    renderPricing(); renderAssumptions(); renderMarketDemandOnly(); if (window.Extras) window.Extras.render();
   }
   function renderMarketDemandOnly() { /* hook réservé */ }
 
@@ -418,6 +420,8 @@
     init() { bind(); renderAll(); },
     onLanguage() { renderAll(); },
     onSurvey, renderPricing, renderFinOutputs,
+    setState(ns) { state = ns; save(); if (surveyMeta) onSurvey(surveyMeta); renderAll(); },
+    getActive: () => activeScenario, priceInputs: currentPriceInputs,
     getState: () => state, getIndicators: () => indicators, getResults: () => results
   };
 })();
