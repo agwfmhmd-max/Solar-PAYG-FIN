@@ -9,7 +9,6 @@
   const D = root.PaygDocs, R = root.PaygReport;
   const { num, mru, pct, pctRaw } = D;
   const CDN = 'https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js';
-  const ZIP_CDN = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
   const W = 13.333, H = 7.5;
   const K = { navy: '0F172A', slate: '334155', gray: '64748B', light: 'F1F5F9', line: 'CBD5E1', green: '16803A', greenDark: '14532D', lime: 'DCFCE7', gold: 'D4AF37', orange: 'F59E0B', orangeDark: 'EA580C', blue: '1D6FE0', blueDark: '1E3A8A', red: 'DC2626', white: 'FFFFFF', cream: 'FEF3C7' };
   const FONT = 'Arial';
@@ -24,64 +23,10 @@
       document.head.appendChild(s);
     });
   }
-  function loadZipLib() {
-    if (root.JSZip) return Promise.resolve();
-    return new Promise((resolve, reject) => {
-      const s = document.createElement('script'); s.src = ZIP_CDN; s.async = true;
-      s.onload = () => (root.JSZip ? resolve() : reject(new Error('pptx animation zip')));
-      s.onerror = () => reject(new Error('pptx animation zip network'));
-      document.head.appendChild(s);
-    });
-  }
-  function motionXml(xml, slideIndex) {
-    if (xml.indexOf('<p:timing') >= 0 || !root.DOMParser) return xml;
-    const P = 'http://schemas.openxmlformats.org/presentationml/2006/main', A = 'http://schemas.openxmlformats.org/drawingml/2006/main';
-    let targets = [];
-    try {
-      const doc = new root.DOMParser().parseFromString(xml, 'application/xml');
-      if (doc.getElementsByTagName('parsererror').length) return xml;
-      targets = Array.from(doc.getElementsByTagNameNS(P, 'sp')).map((shape) => {
-        const prop = shape.getElementsByTagNameNS(P, 'cNvPr')[0];
-        const tx = Array.from(shape.getElementsByTagNameNS(A, 't')).map((t) => t.textContent || '').join(' ').trim();
-        const off = shape.getElementsByTagNameNS(A, 'off')[0];
-        return { id: prop && prop.getAttribute('id'), text: tx, y: off ? Number(off.getAttribute('y')) || 0 : 0 };
-      }).filter((x) => x.id && x.text && x.y < 6200000 && !/©\s*2027|Tous droits réservés|All rights reserved/i.test(x.text))
-        .sort((a, b) => a.y - b.y).slice(0, 8);
-    } catch (e) { targets = []; }
-    if (!targets.length) return xml;
-    let id = 5;
-    const animated = targets.map((t, i) => {
-      const effectId = id++, behaviorId = id++;
-      return '<p:par><p:cTn id="' + effectId + '" presetID="10" presetClass="entr" presetSubtype="0" fill="hold" nodeType="withEffect"><p:stCondLst><p:cond delay="' + (i * 110) + '"/></p:stCondLst><p:childTnLst><p:animEffect transition="in" filter="fade"><p:cBhvr><p:cTn id="' + behaviorId + '" dur="520" fill="hold"/><p:tgtEl><p:spTgt spid="' + t.id + '"/></p:tgtEl><p:attrNameLst><p:attrName>style.visibility</p:attrName></p:attrNameLst></p:cBhvr></p:animEffect></p:childTnLst></p:cTn></p:par>';
-    }).join('');
-    const timing = '<p:timing><p:tnLst><p:par><p:cTn id="1" dur="indefinite" restart="never" nodeType="tmRoot"><p:childTnLst><p:seq concurrent="1" nextAc="seek"><p:cTn id="2" dur="indefinite" nodeType="mainSeq"><p:childTnLst><p:par><p:cTn id="3" fill="hold"><p:stCondLst><p:cond delay="indefinite"/><p:cond evt="onBegin" delay="0"><p:tn val="2"/></p:cond></p:stCondLst><p:childTnLst><p:par><p:cTn id="4" fill="hold"><p:stCondLst><p:cond delay="0"/></p:stCondLst><p:childTnLst>' + animated + '</p:childTnLst></p:cTn></p:par></p:childTnLst></p:cTn></p:par></p:childTnLst></p:cTn><p:prevCondLst><p:cond evt="onPrev" delay="0"><p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:prevCondLst><p:nextCondLst><p:cond evt="onNext" delay="0"><p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:nextCondLst></p:seq></p:childTnLst></p:cTn></p:par></p:tnLst></p:timing>';
-    const effects = ['<p:fade/>', '<p:push dir="l"/>', '<p:wipe dir="r"/>', '<p:cover dir="l"/>'];
-    const transition = '<p:transition spd="med" advClick="1">' + effects[slideIndex % effects.length] + '</p:transition>';
-    let out = xml;
-    const clr = out.indexOf('</p:clrMapOvr>');
-    if (clr >= 0) { const end = clr + '</p:clrMapOvr>'.length; out = out.slice(0, end) + transition + out.slice(end); }
-    else {
-      const timingAt = out.indexOf('<p:timing'), extAt = out.indexOf('<p:extLst'), closeAt = out.lastIndexOf('</p:sld>');
-      const at = timingAt >= 0 ? timingAt : (extAt >= 0 ? extAt : closeAt);
-      if (at >= 0) out = out.slice(0, at) + transition + out.slice(at);
-    }
-    const extAt = out.indexOf('<p:extLst'), closeAt = out.lastIndexOf('</p:sld>'), timingAt = extAt >= 0 ? extAt : closeAt;
-    if (timingAt >= 0) out = out.slice(0, timingAt) + timing + out.slice(timingAt);
-    return out;
-  }
-  async function animatePresentation(blob) {
-    const zip = await root.JSZip.loadAsync(blob);
-    const slides = Object.keys(zip.files).filter((n) => /^ppt\/slides\/slide\d+\.xml$/.test(n))
-      .sort((a, b) => Number(a.match(/slide(\d+)/)[1]) - Number(b.match(/slide(\d+)/)[1]));
-    for (let i = 0; i < slides.length; i++) zip.file(slides[i], motionXml(await zip.file(slides[i]).async('string'), i));
-    return zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
-  }
   const b64 = (bytes) => { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); };
 
   async function write(ctx, fileName) {
-    const deckTheme = root.document && root.document.documentElement.classList.contains('light') ? 'light' : 'dark';
     await loadLib();
-    await loadZipLib();
     const a = R.analyze(ctx), E = a.E, g = a.g, sc = a.sc, res = a.res, ind = a.ind, has = a.has;
     const cen = res.central, pru = res.prudent, dyn = res.dynamique, SC = R.SC;
     const pres = new root.PptxGenJS();
@@ -90,13 +35,7 @@
     const assets = root.PAYG_ASSETS || {};
     let logo = null;
     try { if (assets.logoSvg) { const lp = await D.svgToPngTransparent(assets.logoSvg, 1092, 1092, 0.6); logo = 'image/png;base64,' + b64(lp.bytes); } } catch (e) { /* logo facultatif */ }
-    const themedShots = {};
-    for (const k of Object.keys(assets.shots || {})) {
-      const source = (deckTheme === 'light' && assets.shotsLight && assets.shotsLight[k]) || (deckTheme === 'dark' && assets.shotsDark && assets.shotsDark[k]) || assets.shots[k];
-      const themed = D.imageForTheme ? await D.imageForTheme(source, deckTheme) : source;
-      themedShots[k] = themed ? themed.replace(/^data:/, '') : null;
-    }
-    const shotData = (k) => themedShots[k] || null;
+    const shotData = (k) => (assets.shots && assets.shots[k] ? assets.shots[k].replace(/^data:/, '') : null);
     const STEPS = { 1: 'Étape 1/7 · Problème en Mauritanie', 2: 'Étape 2/7 · Enquête → preuve du besoin', 3: 'Étape 3/7 · Étude de marché → demande', 4: 'Étape 4/7 · Prototype → démonstration', 5: 'Étape 5/7 · Hypothèses financières', 6: 'Étape 6/7 · Faisabilité → rentabilité et risques', 7: 'Étape 7/7 · Conclusion' };
     const nTxt = has ? num(a.n) + ' répondant' + (a.n > 1 ? 's' : '') : null;
     const L = noEmoji;
@@ -105,21 +44,15 @@
     /* ---------- gabarit de diapositive ---------- */
     function slide(title, step, notes) {
       const s = pres.addSlide(); count++;
-      s.background = { color: 'F8FAFC' };
+      s.background = { color: K.white };
       s.addShape(pres.ShapeType.rect, { x: 0, y: 0, w: W, h: 0.14, fill: { color: K.greenDark }, line: { color: K.greenDark, width: 0 } });
       s.addShape(pres.ShapeType.rect, { x: 0, y: 0.14, w: W, h: 0.04, fill: { color: K.gold }, line: { color: K.gold, width: 0 } });
-      s.addShape(pres.ShapeType.roundRect, { x: 0.48, y: 0.39, w: 0.11, h: 0.66, rectRadius: 0.05, fill: { color: K.gold }, line: { color: K.gold, transparency: 100, width: 0 } });
-      s.addText(title, { x: 0.76, y: 0.34, w: 9.9, h: 0.8, fontFace: FONT, fontSize: 28, bold: true, color: K.greenDark, valign: 'middle', margin: 0, isTextBox: true, fit: 'shrink' });
-      if (step) {
-        s.addShape(pres.ShapeType.roundRect, { x: 0.76, y: 1.12, w: 5.35, h: 0.32, rectRadius: 0.08, fill: { color: K.lime }, line: { color: K.lime, width: 0 } });
-        s.addText(STEPS[step], { x: 0.9, y: 1.12, w: 5.1, h: 0.3, fontFace: FONT, fontSize: 11, italic: true, color: K.greenDark, margin: 0, isTextBox: true });
-      }
+      s.addText(title, { x: 0.5, y: 0.34, w: 10.2, h: 0.8, fontFace: FONT, fontSize: 28, bold: true, color: K.greenDark, valign: 'middle', margin: 0, isTextBox: true, fit: 'shrink' });
+      if (step) s.addText(STEPS[step], { x: 0.5, y: 1.1, w: 9, h: 0.3, fontFace: FONT, fontSize: 12, italic: true, color: K.gray, margin: 0, isTextBox: true });
       if (logo) s.addImage({ data: logo, x: W - 1.2, y: 0.28, w: 0.78, h: 0.78 });
       s.addShape(pres.ShapeType.line, { x: 0.5, y: H - 0.5, w: W - 1, h: 0, line: { color: K.line, width: 0.75 } });
       s.addText('© 2027 Solar PAYG Mauritanie — MDA — Tous droits réservés   |   Département Management, Economie et Droit', { x: 0.5, y: H - 0.45, w: 10.5, h: 0.3, fontFace: FONT, fontSize: 10, color: K.gray, margin: 0, isTextBox: true });
       s.addText(String(count), { x: W - 1.1, y: H - 0.45, w: 0.6, h: 0.3, fontFace: FONT, fontSize: 10, color: K.gray, align: 'right', margin: 0, isTextBox: true });
-      s.addShape(pres.ShapeType.rect, { x: 0.5, y: H - 0.08, w: W - 1, h: 0.035, fill: { color: 'E2E8F0' }, line: { color: 'E2E8F0', width: 0 } });
-      s.addShape(pres.ShapeType.rect, { x: 0.5, y: H - 0.08, w: (W - 1) * (count / 20), h: 0.035, fill: { color: K.green }, line: { color: K.green, width: 0 } });
       if (notes) s.addNotes(notes);
       return s;
     }
@@ -178,10 +111,6 @@
       if (team) s.addText(team, { x: 3.5, y: 4.7, w: 9.3, h: 0.5, fontFace: FONT, fontSize: 18, color: 'FDE68A', margin: 0, isTextBox: true });
       s.addText('Département Management, Economie et Droit', { x: 0.7, y: 6.15, w: 8, h: 0.4, fontFace: FONT, fontSize: 16, bold: true, color: K.white, margin: 0, isTextBox: true });
       s.addText('© 2027 Solar PAYG Mauritanie — MDA — Tous droits réservés  ·  Généré le ' + (a.date || ''), { x: 0.7, y: 6.65, w: 11.5, h: 0.3, fontFace: FONT, fontSize: 11, color: '94A3B8', margin: 0, isTextBox: true });
-      s.addShape(pres.ShapeType.ellipse, { x: 0.9, y: 3.85, w: 1.05, h: 1.05, fill: { color: K.orange }, line: { color: 'FDE68A', width: 1.2 } });
-      s.addShape(pres.ShapeType.rect, { x: 0.62, y: 4.78, w: 2.48, h: 0.72, fill: { color: K.blueDark }, line: { color: '93C5FD', width: 1.1 } });
-      for (let gx = 1; gx < 4; gx++) s.addShape(pres.ShapeType.line, { x: 0.62 + gx * 0.62, y: 4.78, w: 0, h: 0.72, line: { color: 'BFDBFE', width: 0.8, transparency: 18 } });
-      s.addShape(pres.ShapeType.line, { x: 0.62, y: 5.14, w: 2.48, h: 0, line: { color: 'BFDBFE', width: 0.8, transparency: 18 } });
       s.addNotes('Présenter le projet en une phrase : une entreprise qui finance des kits solaires et se fait rembourser par petits paiements mobiles. Annoncer le fil de la soutenance : problème, enquête, marché, prototype, finance, faisabilité, conclusion.');
     }
 
@@ -410,12 +339,7 @@
       try { const st = D.story(-1); const png = await D.render(st); s.addImage({ data: 'image/png;base64,' + b64(png.bytes), x: 1.9, y: 5.15, w: 9.5, h: 9.5 * st.h / st.w }); } catch (e) { /* facultatif */ }
     }
 
-    const pptxBlob = await pres.write({ outputType: 'blob' });
-    const finishedBlob = await animatePresentation(pptxBlob);
-    const url = URL.createObjectURL(finishedBlob), link = document.createElement('a');
-    link.href = url; link.download = fileName || 'soutenance_etude_faisabilite_payg.pptx';
-    document.body.appendChild(link); link.click();
-    setTimeout(() => { URL.revokeObjectURL(url); link.remove(); }, 3000);
+    await pres.writeFile({ fileName: fileName || 'soutenance_etude_faisabilite_payg.pptx' });
     return count;
   }
 
