@@ -64,10 +64,21 @@
     if (i >= 0) P.list[i] = rec; else P.list.push(rec);
     P.active = rec.name; if (writeP(P)) { sig = ''; renderBar(); }
   }
-  function deleteProfile() {
+  /* Superviseur principal (MDA) : seul à pouvoir supprimer un jeu d'hypothèses (règle aussi imposée par la base de données) */
+  const isAdmin = () => { try { return !!(window.PaygAuth && window.PaygAuth.isAdmin && window.PaygAuth.isAdmin()); } catch (e) { return false; } };
+  async function deleteProfile() {
     const P = readP(); if (!P.active) return;
+    if (!isAdmin()) { alert(L('Seul le superviseur principal (MDA) peut supprimer un jeu d’hypothèses.', 'المشرف الرئيسي (MDA) وحده يمكنه حذف مجموعة فرضيات.')); return; }
     if (!confirm(L('Supprimer le jeu « ' + P.active + ' » ?', 'حذف المجموعة «' + P.active + '»؟'))) return;
-    P.list = P.list.filter((x) => x.name !== P.active); P.active = null; writeP(P); sig = ''; renderBar();
+    const name = P.active;
+    const r = window.HypDB && window.HypDB.deleteProfile ? await window.HypDB.deleteProfile(name) : { ok: false, offline: true };
+    if (r.ok) {
+      const list = r.profiles && Array.isArray(r.profiles.list) ? r.profiles.list : P.list.filter((x) => x.name !== name);
+      try { localStorage.setItem(PK, JSON.stringify({ list, active: null })); } catch (e) { /* ignore */ }
+      sig = ''; renderBar(); return;
+    }
+    if (r.denied) { alert(L('Suppression refusée : seul le superviseur principal (MDA) peut supprimer un jeu d’hypothèses.', 'تم رفض الحذف: المشرف الرئيسي (MDA) وحده يمكنه حذف مجموعة فرضيات.')); return; }
+    alert(L('Suppression impossible : la base de données est injoignable. Réessayez lorsque la connexion est rétablie.', 'تعذر الحذف: قاعدة البيانات غير متاحة. أعد المحاولة عند عودة الاتصال.'));
   }
   /* Export / import : permet à l'équipe d'échanger ses jeux d'hypothèses par fichier */
   const FMT = 'payg-hypotheses';
@@ -118,13 +129,13 @@
     const P = readP(), st = window.StudyUI.getState(), act = P.list.find((x) => x.name === P.active) || null;
     const ref = act ? snap({ g: Object.assign(E.defaultState().g, act.g), sc: (() => { const d = E.defaultState().sc; Object.keys(d).forEach((k) => Object.assign(d[k], (act.sc || {})[k] || {})); return d; })() }) : snap(E.defaultState());
     const dirty = snap(st) !== ref;
-    const s2 = [AR(), P.active, dirty, P.list.map((x) => x.name + x.saved).join('|')].join('#');
+    const s2 = [AR(), P.active, dirty, isAdmin(), P.list.map((x) => x.name + x.saved).join('|')].join('#');
     const chip = $('profChipLabel'); if (chip) chip.textContent = (act ? act.name : L('Défaut', 'الافتراضية')) + (dirty ? ' *' : '');
     if (s2 === sig) return; sig = s2;
     let h = '<div class="bg-slate-950 p-4 border border-slate-800 rounded-xl flex flex-wrap items-center gap-2 text-xs"><i class="fa-solid fa-layer-group text-amber-400"></i><strong class="text-slate-200">' + L('Jeux d’hypothèses', 'مجموعات الفرضيات') + ' :</strong>';
     h += '<select id="profSel" class="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white max-w-[16rem]"><option value="">' + L('Hypothèses par défaut', 'الفرضيات الافتراضية') + '</option>' + P.list.map((x) => '<option value="' + esc(x.name) + '"' + (x.name === P.active ? ' selected' : '') + '>' + esc(x.name) + '</option>').join('') + '</select>';
     h += '<button type="button" id="profSave" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold"><i class="fa-solid fa-floppy-disk mx-1"></i>' + L('Enregistrer sous…', 'حفظ باسم…') + '</button>';
-    if (act) h += '<button type="button" id="profDel" class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-red-400 hover:bg-slate-700"><i class="fa-solid fa-trash mx-1"></i>' + L('Supprimer', 'حذف') + '</button>';
+    if (act && isAdmin()) h += '<button type="button" id="profDel" class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-red-400 hover:bg-slate-700"><i class="fa-solid fa-trash mx-1"></i>' + L('Supprimer', 'حذف') + '</button>';
     h += '<button type="button" id="profExp" class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 hover:bg-slate-700"><i class="fa-solid fa-file-export mx-1 text-cyan-400"></i>' + L('Exporter (JSON)', 'تصدير (JSON)') + '</button>';
     h += '<button type="button" id="profImp" class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 hover:bg-slate-700"><i class="fa-solid fa-file-import mx-1 text-cyan-400"></i>' + L('Importer (JSON)', 'استيراد (JSON)') + '</button>';
     h += '<span class="text-[11px] ' + (dirty ? 'text-amber-300' : 'text-emerald-400') + '">' + (dirty ? L('Modifié par rapport au jeu chargé', 'معدّلة مقارنة بالمجموعة المحمّلة') : L('Identique au jeu chargé', 'مطابقة للمجموعة المحمّلة')) + '</span>';
@@ -271,6 +282,7 @@
       try { localStorage.setItem(PK, JSON.stringify({ list: o.list, active: o.active || null })); } catch (e) { /* ignore */ }
       sig = ''; renderBar();
     } };
+  window.addEventListener('payg-auth', () => { sig = ''; try { renderBar(); } catch (e) { /* ignore */ } }); // les droits (MDA) changent à la connexion / déconnexion
   const tb = $('themeBtn'); if (tb) tb.addEventListener('click', window.toggleTheme);
   const pc = $('profChip'); if (pc) pc.addEventListener('click', window.openProfileChooser);
   paintTheme(); window.Extras.render(); chooser(false);

@@ -158,6 +158,7 @@
                 <div id="authChip" class="hidden items-center gap-2 bg-slate-800/80 border border-slate-700/60 pl-3 pr-1.5 py-1.5 rounded-xl text-xs text-slate-200">
                     <i class="fa-solid fa-user-shield text-emerald-400"></i>
                     <strong id="authName" class="font-bold"></strong>
+                    <span id="authBadge" class="hidden text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.5 rounded-md"></span>
                     <button type="button" id="authLogout" class="bg-slate-700/70 hover:bg-slate-600 border border-slate-600 rounded-lg px-2.5 py-1 transition flex items-center gap-1.5"><i class="fa-solid fa-right-from-bracket"></i><span id="authLogoutTxt">Déconnexion</span></button>
                 </div>
 
@@ -214,6 +215,11 @@
             <a href="#module-team" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs sm:text-sm font-medium text-slate-200 transition flex items-center gap-2">
                 <i class="fa-solid fa-users text-rose-400"></i>
                 <span data-key="navModule6">6. Équipe du Projet</span>
+            </a>
+            <!-- Statistiques d'activité : visible uniquement pour le superviseur principal (MDA) -->
+            <a id="navStats" href="#module-stats" class="hidden px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 rounded-lg text-xs sm:text-sm font-medium text-amber-200 transition flex items-center gap-2">
+                <i class="fa-solid fa-chart-pie text-amber-400"></i>
+                <span id="navStatsTxt">Statistiques (MDA)</span>
             </a>
         </nav>
 
@@ -698,6 +704,7 @@
                     <button type="button" data-export="xlsx" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700"><i class="fa-solid fa-file-excel mx-1 text-emerald-400"></i><span data-k2="exXLSX"></span></button>
                     <button type="button" data-export="pdf" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700"><i class="fa-solid fa-file-pdf mx-1 text-red-400"></i><span data-k2="exPDF"></span></button>
                     <button type="button" data-export="docx" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700"><i class="fa-solid fa-file-word mx-1 text-blue-400"></i><span data-k2="exDOCX"></span></button>
+                    <button type="button" data-export="pptx" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700"><i class="fa-solid fa-file-powerpoint mx-1 text-orange-400"></i><span data-k2="exPPTX"></span></button>
                     <button type="button" data-export="json" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700"><i class="fa-solid fa-code mx-1 text-cyan-400"></i><span data-k2="exJSON"></span></button>
                 </div>
                 <details><summary class="cursor-pointer text-[11px] text-slate-400" data-k2="params"></summary><pre id="paramsJson" class="mt-2 text-[10px] text-slate-400 bg-slate-900 border border-slate-800 rounded-lg p-3 overflow-x-auto"></pre></details>
@@ -719,6 +726,19 @@
             <div id="teamGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
         </section>
 
+    
+        <!-- STATISTIQUES (superviseur principal MDA uniquement) -->
+        <section id="module-stats" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-7 shadow-xl space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b border-slate-800 pb-4">
+                <div>
+                    <span class="px-2.5 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[10px] font-bold">MDA</span>
+                    <h3 id="statsTitle" class="text-lg sm:text-xl font-bold text-white mt-1">Statistiques d’activité</h3>
+                    <p id="statsSub" class="text-xs text-slate-400 mt-1"></p>
+                </div>
+                <button type="button" id="statsRefresh" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700 text-xs text-slate-200 flex items-center gap-2"><i class="fa-solid fa-rotate text-cyan-400"></i><span id="statsRefreshTxt">Actualiser</span></button>
+            </div>
+            <div id="statsRoot" class="space-y-4"></div>
+        </section>
     </main>
     <div id="printArea"></div>
 
@@ -733,7 +753,11 @@
     <script src="extras.js"></script>
     <script src="hypdb.js"></script>
     <script src="wordexport.js"></script>
+    <script src="docs-common.js"></script>
+    <script src="report.js"></script>
+    <script src="pptx.js"></script>
     <script src="auth.js"></script>
+    <script src="stats.js"></script>
     <script>
         // Dictionary of translations
         let currentLang = 'fr';
@@ -1410,15 +1434,15 @@
             SUPABASE_URL: "https://xposdpygdmivhgcbisjl.supabase.co",       // ex. https://xxxxxxxx.supabase.co  (même projet que la plateforme d'enquête)
             SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhwb3NkcHlnZG1pdmhnY2Jpc2psIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1NzAxMzIsImV4cCI6MjEwMjE0NjEzMn0.dAdRduHZbxGCsoFr6rC72nf8LIYJkZxFNNKNpwv9hqo",  // clé « anon / public » du projet Supabase
             SURVEY_SLUG: "solar-payg-mauritanie-2027",
-            // Connexion des superviseurs : un seul compte « User » existe dans Supabase (Authentication > Users).
-            // AUTH_EMAIL = e-mail de ce compte ; le mot de passe n'est JAMAIS écrit ici (vérifié par Supabase).
-            // AUTH_USERS = noms proposés dans la liste de connexion ; le nom choisi est utilisé pour préfixer les jeux d'hypothèses.
-            AUTH_EMAIL: "agwfmhmd@gmail.com",
+            // Connexion des superviseurs : un compte « User » par superviseur dans Supabase (Authentication > Users).
+            // « email » = e-mail du compte ; le mot de passe n'est JAMAIS écrit ici (vérifié par Supabase).
+            // « admin: true » = superviseur principal (MDA) : seul à pouvoir supprimer un jeu d'hypothèses et à voir les Statistiques.
+            // Ces droits sont AUSSI imposés côté base de données (supabase_security.sql) : le navigateur ne fait que les refléter.
             AUTH_USERS: [
-                { name: "MDA" },
-                { name: "ELHOUSSEIN" },
-                { name: "TOUTOU" },
-                { name: "Neine" }
+                { name: "MDA",        email: "agwfmhmd@gmail.com",           admin: true },
+                { name: "ELHOUSSEIN", email: "elhousseinainina58@gmail.com" },
+                { name: "TOUTOU",     email: "toutoukhatri443@gmail.com" },
+                { name: "Neine",      email: "mahmoudneine594@gmail.com" }
             ]
         };
 

@@ -17,7 +17,7 @@
       login: 'Se connecter', loading: 'Connexion…', logout: 'Déconnexion', lang: 'العربية',
       needUser: 'Veuillez choisir votre nom.', needPwd: 'Veuillez saisir votre mot de passe.',
       bad: 'Mot de passe incorrect. Vérifiez-le et réessayez.', net: 'Connexion impossible : vérifiez votre accès Internet et réessayez.',
-      unconf: 'Compte non configuré : renseignez AUTH_EMAIL dans APP_CONFIG (index.html).',
+      unconf: 'Compte non configuré : renseignez l’e-mail de ce superviseur dans APP_CONFIG.AUTH_USERS (index.html).',
       nolib: 'Service d’authentification indisponible (Supabase non chargé). Vérifiez votre connexion Internet puis rechargez la page.',
       unconfirmed: 'Ce compte n’est pas encore confirmé dans Supabase.', other: 'Connexion refusée. Réessayez.', welcome: 'Connecté :'
     },
@@ -27,7 +27,7 @@
       login: 'تسجيل الدخول', loading: 'جارٍ الدخول…', logout: 'تسجيل الخروج', lang: 'Français',
       needUser: 'الرجاء اختيار اسمك.', needPwd: 'الرجاء إدخال كلمة المرور.',
       bad: 'كلمة المرور غير صحيحة. تحقق منها وأعد المحاولة.', net: 'تعذر الاتصال: تحقق من الإنترنت وأعد المحاولة.',
-      unconf: 'الحساب غير مهيأ: أدخل AUTH_EMAIL في APP_CONFIG (ملف index.html).',
+      unconf: 'الحساب غير مهيأ: أدخل بريد هذا المشرف في APP_CONFIG.AUTH_USERS (ملف index.html).',
       nolib: 'خدمة المصادقة غير متاحة (لم يتم تحميل Supabase). تحقق من الإنترنت ثم أعد تحميل الصفحة.',
       unconfirmed: 'هذا الحساب غير مؤكد بعد في Supabase.', other: 'تم رفض الدخول. أعد المحاولة.', welcome: 'متصل:'
     }
@@ -38,13 +38,10 @@
   const cfg = () => (typeof APP_CONFIG !== 'undefined' && APP_CONFIG) || {};
   const users = () => (Array.isArray(cfg().AUTH_USERS) ? cfg().AUTH_USERS : []);
   const byName = (n) => users().find((u) => u.name === n) || null;
-  // Un seul compte « User » Supabase est partagé : son e-mail est AUTH_EMAIL ; le nom choisi dans la liste identifie le superviseur.
-  const authEmail = () => String(cfg().AUTH_EMAIL || '').trim();
-  const sameEmail = (e) => authEmail() && String(e || '').trim().toLowerCase() === authEmail().toLowerCase();
-  const NAME_KEY = 'payg-supervisor-name';
-  const rememberName = (n) => { try { localStorage.setItem(NAME_KEY, n); } catch (e) { /* ignore */ } };
-  const savedName = () => { try { return localStorage.getItem(NAME_KEY); } catch (e) { return null; } };
-  const unconfigured = () => !authEmail();
+  // Un compte « User » Supabase par superviseur (APP_CONFIG.AUTH_USERS : name + email). Le superviseur principal (admin: true) est MDA.
+  const emailOf = (u) => String((u && u.email) || '').trim().toLowerCase();
+  const byEmail = (e) => users().find((u) => emailOf(u) && emailOf(u) === String(e || '').trim().toLowerCase()) || null;
+  const unconfigured = (u) => !u || !emailOf(u);
 
   function getClient() {
     if (client) return client;
@@ -78,6 +75,7 @@
     const eye = $('lgEye'), pw = $('lgPwd');
     if (eye && pw) eye.setAttribute('aria-label', pw.type === 'password' ? t('show') : t('hide'));
     const nm = $('authName'); if (nm) nm.textContent = current ? current.name : '';
+    const bd = $('authBadge'); if (bd) { bd.classList.toggle('hidden', !(current && current.admin)); bd.textContent = AR() ? 'المشرف الرئيسي' : 'Principal'; }
   }
   function unlock(u) {
     current = u;
@@ -86,11 +84,14 @@
     const pw = $('lgPwd'); if (pw) pw.value = '';
     setError(''); paint();
     try { window.dispatchEvent(new Event('resize')); } catch (e) { /* ignore */ } // redessine les graphiques
+    try { window.dispatchEvent(new CustomEvent('payg-auth', { detail: { user: current } })); } catch (e) { /* ignore */ } // droits MDA, statistiques, base de données des hypothèses
+    try { if (window.HypDB) window.HypDB.load(); } catch (e) { /* ignore */ }
   }
   function lock() {
     current = null;
     document.documentElement.classList.add('auth-locked');
     const chip = $('authChip'); if (chip) { chip.classList.add('hidden'); chip.classList.remove('flex'); }
+    try { window.dispatchEvent(new CustomEvent('payg-auth', { detail: { user: null } })); } catch (e) { /* ignore */ }
     const pw = $('lgPwd'); if (pw) pw.value = '';
     busy = false; const b = $('lgSubmit'); if (b) b.disabled = false;
     paint();
@@ -104,12 +105,12 @@
     if (!name) { setError(t('needUser')); return; }
     if (!pwd) { setError(t('needPwd')); return; }
     const u = byName(name);
-    if (!u || unconfigured()) { setError(t('unconf')); return; }
+    if (unconfigured(u)) { setError(t('unconf')); return; }
     const c = getClient();
     if (!c) { setError(t('nolib')); return; }
     busy = true; $('lgSubmit').disabled = true; setError(''); paint();
     try {
-      const { data, error } = await c.auth.signInWithPassword({ email: authEmail(), password: pwd });
+      const { data, error } = await c.auth.signInWithPassword({ email: emailOf(u), password: pwd });
       if (error) {
         const m = String(error.message || '');
         if (/confirm/i.test(m)) setError(t('unconfirmed'));
@@ -118,8 +119,8 @@
         else setError(t('other'));
         return;
       }
-      rememberName(u.name);
       unlock(u);
+      try { const r = await c.rpc('payg_log_login'); if (r && r.error) console.warn('[auth-log]', r.error.message); } catch (e2) { /* le journal est facultatif côté navigateur */ } // journal des connexions (voir supabase_security.sql)
     } catch (e) {
       console.error('[auth-login]', e);
       setError(t('net'));
@@ -129,7 +130,7 @@
   }
   async function logout() {
     try { const c = getClient(); if (c) await c.auth.signOut(); } catch (e) { console.error('[auth-logout]', e); }
-    try { localStorage.removeItem('payg-supervisor-auth'); localStorage.removeItem(NAME_KEY); } catch (e) { /* ignore */ }
+    try { localStorage.removeItem('payg-supervisor-auth'); } catch (e) { /* ignore */ }
     lock();
   }
 
@@ -139,13 +140,13 @@
     try {
       const { data } = await c.auth.getSession();
       const s = data && data.session;
-      const u = s && s.user && sameEmail(s.user.email) ? byName(savedName()) : null;
+      const u = s && s.user ? byEmail(s.user.email) : null;
       if (u) unlock(u);
-      else if (s) { await c.auth.signOut(); } // session valide mais superviseur inconnu : on redemande le nom
+      else if (s) { await c.auth.signOut(); } // session valide mais compte non reconnu : on redemande la connexion
     } catch (e) {
       console.error('[auth-restore]', e);
       // base injoignable au démarrage (hors connexion) : on garde le superviseur connecté tant qu'il ne s'est pas déconnecté
-      try { const u = localStorage.getItem('payg-supervisor-auth') ? byName(savedName()) : null; if (u) unlock(u); } catch (e2) { /* ignore */ }
+      try { const raw = localStorage.getItem('payg-supervisor-auth'); const m = raw && raw.match(/"email"\s*:\s*"([^"]+)"/); const u = m ? byEmail(m[1]) : null; if (u) unlock(u); } catch (e2) { /* ignore */ }
     }
     c.auth.onAuthStateChange((evt, session) => { if (evt === 'SIGNED_OUT' && current) lock(); });
   }
@@ -167,5 +168,5 @@
     if (!current) setTimeout(() => { const s = $('lgUser'); if (s && document.documentElement.classList.contains('auth-locked')) s.focus(); }, 50);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
-  window.PaygAuth = { logout: logout, user: () => current };
+  window.PaygAuth = { logout: logout, user: () => current, isAdmin: () => !!(current && current.admin), client: getClient };
 })();

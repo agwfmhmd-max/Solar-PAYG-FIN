@@ -24,9 +24,18 @@
   const icons = { loading: 'fa-spinner fa-spin text-slate-400', saving: 'fa-spinner fa-spin text-amber-400', saved: 'fa-database text-emerald-400', loaded: 'fa-database text-emerald-400', offline: 'fa-triangle-exclamation text-amber-400', noconfig: 'fa-triangle-exclamation text-amber-400', notable: 'fa-triangle-exclamation text-red-400' };
 
   let cache = { state: null, profiles: null }; // dernières valeurs connues (pour écrire la ligne complète)
+  let known = null; // noms des jeux présents en base lors de la dernière synchronisation (détecte les jeux supprimés par MDA)
+  const namesOf = (p) => (p && Array.isArray(p.list) ? p.list.map((x) => x && x.name) : []);
   let ready = false, loading = false, timer = null, retryTimer = null, status = 'loading';
 
-  const client = () => { try { return typeof getSupabase === 'function' ? getSupabase() : null; } catch (e) { return null; } };
+  // Les hypothèses sont protégées par la sécurité de la base (RLS) : on utilise la session du superviseur connecté (auth.js).
+  // Sans superviseur connecté, aucune lecture/écriture n'est tentée. (Repli sur le client public seulement si auth.js est absent.)
+  const client = () => {
+    try {
+      if (window.PaygAuth && typeof window.PaygAuth.client === 'function') return window.PaygAuth.user() ? window.PaygAuth.client() : null;
+      return typeof getSupabase === 'function' ? getSupabase() : null;
+    } catch (e) { return null; }
+  };
   const key = () => { try { return (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.SURVEY_SLUG) || 'default'; } catch (e) { return 'default'; } };
   const isDirty = () => { try { return localStorage.getItem(DIRTY_KEY) === '1'; } catch (e) { return false; } };
   const setDirty = (v) => { try { if (v) localStorage.setItem(DIRTY_KEY, '1'); else localStorage.removeItem(DIRTY_KEY); } catch (e) { /* ignore */ } };
@@ -52,9 +61,30 @@
     if (!cache.state && !cache.profiles) return;
     setStatus('saving');
     try {
+      // Un jeu supprimé entre-temps par le superviseur principal ne doit pas être ré-envoyé depuis un cache périmé de ce navigateur.
+      if (known && cache.profiles && Array.isArray(cache.profiles.list)) {
+        const cur = await c.from(TABLE).select('profiles').eq('project_key', key()).maybeSingle();
+        if (!cur.error && cur.data && cur.data.profiles && Array.isArray(cur.data.profiles.list)) {
+          const now = namesOf(cur.data.profiles), gone = cache.profiles.list.filter((x) => known.indexOf(x.name) >= 0 && now.indexOf(x.name) < 0);
+          if (gone.length) {
+            const kept = cache.profiles.list.filter((x) => gone.indexOf(x) < 0);
+            cache.profiles = { list: kept, active: gone.some((x) => x.name === cache.profiles.active) ? null : (cache.profiles.active || null) };
+            const EX0 = window.Extras; if (EX0 && EX0.applyRemoteProfiles) EX0.applyRemoteProfiles(clone(cache.profiles));
+          }
+        }
+      }
       const row = { project_key: key(), state: cache.state, profiles: cache.profiles || { list: [], active: null }, schema_version: 3, updated_at: new Date().toISOString() };
-      const { error } = await c.from(TABLE).upsert(row, { onConflict: 'project_key' });
+      const { data: back, error } = await c.from(TABLE).upsert(row, { onConflict: 'project_key' }).select('profiles').maybeSingle();
       if (error) throw error;
+      // La base conserve les jeux d'un autre superviseur absents de cet enregistrement : on aligne la liste locale sur la base (sans renvoi).
+      try {
+        const EX = window.Extras, remote = back && back.profiles;
+        if (remote && Array.isArray(remote.list) && cache.profiles && Array.isArray(cache.profiles.list) && remote.list.length !== cache.profiles.list.length && EX && EX.applyRemoteProfiles) {
+          const merged = { list: clone(remote.list), active: cache.profiles.active || null };
+          cache.profiles = clone(merged); EX.applyRemoteProfiles(merged);
+        }
+      } catch (e2) { /* ignore */ }
+      known = namesOf(cache.profiles);
       setDirty(false); setStatus('saved');
     } catch (err) {
       setDirty(true); setStatus(missingTable(err) ? 'notable' : 'offline'); scheduleRetry();
@@ -80,6 +110,7 @@
       if (data && !isDirty()) {
         cache.state = data.state || (localState ? { v: 3, g: clone(localState.g), sc: clone(localState.sc) } : null);
         cache.profiles = data.profiles || localProfiles;
+        known = namesOf(data.profiles);
         ready = true;
         if (data.state && SU && SU.applyRemote) SU.applyRemote(data.state);
         if (data.profiles && EX && EX.applyRemoteProfiles) EX.applyRemoteProfiles(data.profiles);
@@ -91,6 +122,7 @@
         // aucune ligne en base (première utilisation) ou modifications locales en attente : on envoie l'état local
         cache.state = localState ? { v: 3, g: clone(localState.g), sc: clone(localState.sc) } : null;
         cache.profiles = (data && !localProfiles ? data.profiles : localProfiles) || { list: [], active: null };
+        known = data ? namesOf(data.profiles) : null;
         ready = true; queue();
       }
     } catch (err) {
@@ -100,5 +132,19 @@
   }
 
   window.addEventListener('beforeunload', () => { if (timer && ready) { clearTimeout(timer); flush(); } });
-  window.HypDB = { load, saveState, saveProfiles, repaint: paint, getStatus: () => status };
+  /* Suppression d'un jeu d'hypothèses : réservée au superviseur principal (contrôle imposé par la base : payg_delete_profile).
+   * Retourne true si la suppression a été faite (ou s'il n'y a pas de base à contacter), false si elle est refusée / impossible. */
+  async function deleteProfile(name) {
+    const c = client();
+    if (!c) return { ok: false, offline: true };
+    try {
+      const { data, error } = await c.rpc('payg_delete_profile', { p_name: name, p_project: key() });
+      if (error) throw error;
+      if (data && Array.isArray(data.list)) { cache.profiles = { list: clone(data.list), active: data.active || null }; known = namesOf(cache.profiles); }
+      return { ok: true, profiles: data };
+    } catch (err) {
+      return { ok: false, denied: !!(err && (err.code === '42501' || /superviseur principal/i.test(err.message || ''))), message: err && err.message };
+    }
+  }
+  window.HypDB = { load, saveState, saveProfiles, deleteProfile, repaint: paint, getStatus: () => status };
 })();

@@ -59,7 +59,7 @@
       verdict: 'Lecture des résultats', vPos: 'VAN positive dans {k} scénario(s) sur 3.', vNeg: 'VAN négative dans le scénario sélectionné : sous ces hypothèses, le projet ne crée pas de valeur.', vPos2: 'VAN positive dans le scénario sélectionné sous ces hypothèses.',
       vCaveat: 'Ces résultats dépendent d’hypothèses non encore validées (coûts, impayés, financement) : ils servent à tester la faisabilité, ils ne la prouvent pas.',
       vAfford: 'Attention : l’équivalent mensuel du kit ({m}) dépasse le budget que déclarent pouvoir payer la plupart des répondants ({p} seulement le couvrent).',
-      asmTitle: 'Hypothèses du modèle', asmCols: ['Paramètre', 'Valeur', 'Unité', 'Source', 'Date', 'Type'], filterAll: 'Tous', export: 'Exporter les résultats', exCSV: 'CSV', exXLSX: 'Excel', exPDF: 'PDF (impression)', exDOCX: 'Word (rapport)', exJSON: 'Paramètres Enquête → Prototype (JSON)',
+      asmTitle: 'Hypothèses du modèle', asmCols: ['Paramètre', 'Valeur', 'Unité', 'Source', 'Date', 'Type'], filterAll: 'Tous', export: 'Exporter les résultats', exCSV: 'CSV', exXLSX: 'Excel', exPDF: 'PDF (impression)', exDOCX: 'Word (rapport)', exPPTX: 'PowerPoint (soutenance)', exJSON: 'Paramètres Enquête → Prototype (JSON)',
       params: 'Paramètres transmis au prototype', navAsm: 'Hypothèses & Export', asmDesc: 'Chaque donnée est classée : donnée réelle de l’enquête, estimation, donnée externe vérifiée, hypothèse ou simulation. Les mêmes chiffres alimentent le rapport Word et le PowerPoint.', legend: 'Classification des données', printTitle: 'Étude de faisabilité — synthèse des résultats'
     },
     ar: {
@@ -98,7 +98,7 @@
       verdict: 'قراءة النتائج', vPos: 'قيمة حالية صافية موجبة في {k} سيناريو من 3.', vNeg: 'القيمة الحالية الصافية سالبة في السيناريو المختار: وفق هذه الفرضيات لا يخلق المشروع قيمة.', vPos2: 'القيمة الحالية الصافية موجبة في السيناريو المختار وفق هذه الفرضيات.',
       vCaveat: 'تعتمد هذه النتائج على فرضيات لم تُثبت بعد: فهي تختبر الجدوى ولا تثبتها.',
       vAfford: 'تنبيه: المعادل الشهري ({m}) يتجاوز ما يصرّح معظم المجيبين بقدرتهم على دفعه ({p} فقط يغطونه).',
-      asmTitle: 'فرضيات النموذج', asmCols: ['المعامل', 'القيمة', 'الوحدة', 'المصدر', 'التاريخ', 'النوع'], filterAll: 'الكل', export: 'تصدير النتائج', exCSV: 'CSV', exXLSX: 'Excel', exPDF: 'PDF (طباعة)', exDOCX: 'Word (تقرير)', exJSON: 'معاملات الاستبيان ← النموذج (JSON)',
+      asmTitle: 'فرضيات النموذج', asmCols: ['المعامل', 'القيمة', 'الوحدة', 'المصدر', 'التاريخ', 'النوع'], filterAll: 'الكل', export: 'تصدير النتائج', exCSV: 'CSV', exXLSX: 'Excel', exPDF: 'PDF (طباعة)', exDOCX: 'Word (تقرير)', exPPTX: 'PowerPoint (عرض المناقشة)', exJSON: 'معاملات الاستبيان ← النموذج (JSON)',
       params: 'المعاملات المنقولة إلى النموذج', navAsm: 'الفرضيات والتصدير', asmDesc: 'كل معطى مصنف: فعلي من الاستبيان، تقدير، معطى خارجي موثق، فرضية أو محاكاة. الأرقام نفسها تغذي تقرير Word وعرض PowerPoint.', legend: 'تصنيف البيانات', printTitle: 'دراسة الجدوى — ملخص النتائج'
     }
   };
@@ -368,6 +368,43 @@
   }
   function download(name, blob) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }
   const stamp = () => new Date().toISOString().slice(0, 10);
+  /* Rapport Word (plan du rapport de fin d'études) et PowerPoint (soutenance) : construits par report.js / pptx.js
+     à partir des mêmes données que les autres exports (enquête + moteur financier). */
+  function docContext() {
+    let team = [], sup = '';
+    try { if (typeof dbState !== 'undefined' && dbState.team && dbState.team.data) team = dbState.team.data.filter((m) => m.active !== false).map((m) => m.name_fr || m.name_ar).filter(Boolean); } catch (e) { /* ignore */ }
+    try { const u = window.PaygAuth && window.PaygAuth.user(); if (u) sup = u.name; } catch (e) { /* ignore */ }
+    return { E, state, results, ind: indicators, survey: surveyMeta && surveyMeta.status === 'ok' ? surveyMeta : null, date: surveyDate(), supervisor: sup, team };
+  }
+  let docBusy = false;
+  // assets.js (logo + captures du prototype, ~1 Mo) n'est chargé qu'au moment d'un export Word / PowerPoint
+  function ensureAssets() {
+    if (window.PAYG_ASSETS) return Promise.resolve();
+    return new Promise((resolve) => { const s = document.createElement('script'); s.src = 'assets.js'; s.onload = () => resolve(); s.onerror = () => resolve(); document.head.appendChild(s); });
+  }
+  async function exportDoc(kind, sheets) {
+    if (docBusy) return; docBusy = true;
+    const btn = document.querySelector('[data-export="' + kind + '"]'), lbl = btn ? btn.querySelector('span') : null, old = lbl ? lbl.textContent : '';
+    if (lbl) lbl.textContent = lang() === 'ar' ? 'جارٍ الإنشاء…' : 'Génération…';
+    try {
+      await ensureAssets();
+      if (kind === 'docx') {
+        if (!window.PaygReport || !window.PaygDocs) throw new Error('report');
+        const parts = await window.PaygReport.build(docContext());
+        download('rapport_etude_faisabilite_payg_' + stamp() + '.docx', new Blob(parts, { type: window.PaygReport.MIME }));
+      } else {
+        if (!window.PaygPptx) throw new Error('pptx');
+        await window.PaygPptx.write(docContext(), 'soutenance_etude_faisabilite_payg_' + stamp() + '.pptx');
+      }
+    } catch (err) {
+      console.error('[export-' + kind + ']', err);
+      if (kind === 'docx' && window.PaygWord) { // secours : version simple (tableaux uniquement)
+        download('rapport_etude_faisabilite_payg_' + stamp() + '.docx', new Blob(window.PaygWord.build(sheets, { lang: lang(), title: t().printTitle, modelDate: E.MODEL_DATE }), { type: window.PaygWord.MIME }));
+        alert(lang() === 'ar' ? 'تعذر إنشاء التقرير الكامل؛ تم تصدير نسخة مبسطة (جداول فقط).' : 'Le rapport complet n’a pas pu être généré ; une version simplifiée (tableaux) a été exportée.');
+      } else alert(kind === 'pptx' && /load|network|pptx/i.test(String(err && err.message)) ? (lang() === 'ar' ? 'PowerPoint غير متاح بدون اتصال بالإنترنت.' : 'PowerPoint indisponible hors connexion.') : (lang() === 'ar' ? 'تعذر إنشاء الملف.' : 'Impossible de générer le fichier.'));
+    } finally { if (lbl) lbl.textContent = old; docBusy = false; }
+  }
+
   function doExport(kind) {
     recomputeAll();
     const sheets = E.buildExport(state, indicators, results, surveyDate());
@@ -377,8 +414,9 @@
       const run = () => { const wb = XLSX.utils.book_new(); Object.keys(sheets).forEach((n) => XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheets[n]), n.slice(0, 31))); XLSX.writeFile(wb, 'etude_faisabilite_payg_' + stamp() + '.xlsx'); };
       if (window.XLSX) run(); else { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'; s.onload = run; s.onerror = () => alert('Excel indisponible hors connexion : utilisez le CSV.'); document.head.appendChild(s); }
     } else if (kind === 'docx') {
-      if (!window.PaygWord) { alert(lang() === 'ar' ? 'تعذر تحميل مُصدِّر Word.' : 'Export Word indisponible.'); return; }
-      download('rapport_etude_faisabilite_payg_' + stamp() + '.docx', new Blob(window.PaygWord.build(sheets, { lang: lang(), title: t().printTitle, modelDate: E.MODEL_DATE }), { type: window.PaygWord.MIME }));
+      exportDoc('docx', sheets);
+    } else if (kind === 'pptx') {
+      exportDoc('pptx', sheets);
     } else if (kind === 'pdf') {
       let h = '<h1 style="font-size:18px;margin:0 0 4px">' + esc(t().printTitle) + '</h1><p style="font-size:11px;margin:0 0 12px">' + esc(E.MODEL_DATE) + ' — ' + esc(lang() === 'ar' ? 'جميع البيانات مصنفة: فعلية / تقدير / فرضية / محاكاة.' : 'chaque donnée est classée : enquête / estimation / hypothèse / simulation.') + '</p>';
       Object.keys(sheets).forEach((n) => { h += '<h2 style="font-size:13px;margin:14px 0 4px">' + esc(n.replace(/_/g, ' ')) + '</h2><table style="border-collapse:collapse;width:100%;font-size:9px">' + sheets[n].map((row, i) => '<tr>' + row.map((c) => '<' + (i ? 'td' : 'th') + ' style="border:1px solid #999;padding:2px 4px;text-align:left">' + esc(c) + '</' + (i ? 'td' : 'th') + '>').join('') + '</tr>').join('') + '</table>'; });
