@@ -125,7 +125,7 @@
   const utf8 = (s) => (typeof TextEncoder !== 'undefined' ? new TextEncoder().encode(s) : Uint8Array.from(Buffer.from(s, 'utf8')));
 
   function zip(files) {
-    const DOS_TIME = (12 << 11), DOS_DATE = (((2027 - 1980) << 9) | (1 << 5) | 1) & 0xFFFF; // date fixe : fichier reproductible
+    const now = new Date(), DOS_TIME = (12 << 11), DOS_DATE = (((Math.max(1980, now.getFullYear()) - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate()) & 0xFFFF;
     const parts = [], central = []; let offset = 0;
     const u16 = (v) => [v & 255, (v >>> 8) & 255], u32 = (v) => [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255];
     files.forEach((f) => {

@@ -45,7 +45,7 @@
 
   /* files : [{ name, data: string | Uint8Array }] -> tableau de Uint8Array (à passer à new Blob) */
   function zip(files) {
-    const DOS_TIME = (12 << 11), DOS_DATE = (((2027 - 1980) << 9) | (1 << 5) | 1) & 0xFFFF;
+    const now = new Date(), DOS_TIME = (12 << 11), DOS_DATE = (((Math.max(1980, now.getFullYear()) - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate()) & 0xFFFF;
     const parts = [], central = []; let offset = 0;
     const u16 = (v) => [v & 255, (v >>> 8) & 255], u32 = (v) => [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255];
     files.forEach((f) => {
@@ -81,6 +81,52 @@
       i += 2 + len;
     }
     return { w: 1100, h: 700, ext: 'jpeg', mime: 'image/jpeg' };
+  }
+  /* Les captures intégrées sont historiques (mode sombre). En mode clair, les tons
+     neutres de l’interface sont remappés à l’export; les graphiques et couleurs de marque restent inchangés. */
+  const themeShotCache = new Map();
+  function imageForTheme(uri, theme) {
+    const light = theme ? theme === 'light' : !!(root.document && root.document.documentElement.classList.contains('light'));
+    if (!uri || !light || !root.document || typeof root.Image === 'undefined') return Promise.resolve(uri);
+    const key = 'light:' + uri;
+    if (themeShotCache.has(key)) return themeShotCache.get(key);
+    const task = new Promise((resolve) => {
+      const img = new root.Image();
+      img.onload = () => {
+        try {
+          const canvas = root.document.createElement('canvas'); canvas.width = img.naturalWidth || img.width; canvas.height = img.naturalHeight || img.height;
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          if (!ctx) { resolve(uri); return; }
+          ctx.drawImage(img, 0, 0);
+          const frame = ctx.getImageData(0, 0, canvas.width, canvas.height), px = frame.data;
+          for (let i = 0; i < px.length; i += 4) {
+            const r = px[i], g = px[i + 1], b = px[i + 2], hi = Math.max(r, g, b), lo = Math.min(r, g, b);
+            const chroma = hi - lo;
+            const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+            let c;
+            if (chroma > 48 && lum < 0.23) {
+              const mix = 0.80;
+              c = [Math.round(r * (1 - mix) + 255 * mix), Math.round(g * (1 - mix) + 255 * mix), Math.round(b * (1 - mix) + 255 * mix)];
+            } else if (chroma > 48) continue;
+            else if (lum < 0.035) c = [248, 250, 252];
+            else if (lum < 0.105) c = [255, 255, 255];
+            else if (lum < 0.19) c = [241, 245, 249];
+            else if (lum < 0.31) c = [226, 232, 240];
+            else if (lum > 0.88) c = [15, 23, 42];
+            else if (lum > 0.67) c = [51, 65, 85];
+            else if (lum > 0.40) c = [71, 85, 105];
+            else continue;
+            px[i] = c[0]; px[i + 1] = c[1]; px[i + 2] = c[2];
+          }
+          ctx.putImageData(frame, 0, 0);
+          resolve(canvas.toDataURL('image/jpeg', 0.92));
+        } catch (e) { resolve(uri); }
+      };
+      img.onerror = () => resolve(uri);
+      img.src = uri;
+    });
+    themeShotCache.set(key, task);
+    return task;
   }
 
   /* ---------- SVG -> PNG (navigateur) ---------- */
@@ -222,6 +268,6 @@
   /* Rend une spécification {svg,w,h} en PNG */
   const render = (c) => svgToPng(c.svg, c.w, c.h, 2);
 
-  const API = { C, SERIES, esc, clean, XML, num, mru, pct, pctRaw, compact, NB, zip, utf8, dataUriToBytes, imageSize, svgToPng, svgToPngTransparent, hbar, gbars, lines, story, STORY, render, wrapText };
+  const API = { C, SERIES, esc, clean, XML, num, mru, pct, pctRaw, compact, NB, zip, utf8, dataUriToBytes, imageSize, imageForTheme, svgToPng, svgToPngTransparent, hbar, gbars, lines, story, STORY, render, wrapText };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.PaygDocs = API;
 })(typeof window !== 'undefined' ? window : globalThis);

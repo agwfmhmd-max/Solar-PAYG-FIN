@@ -135,6 +135,7 @@
    * ===================================================================== */
   async function build(ctx) {
     const a = analyze(ctx), E = a.E, g = a.g, sc = a.sc, res = a.res, ind = a.ind, has = a.has;
+    const theme = root.document && root.document.documentElement.classList.contains('light') ? 'light' : 'dark';
     const specs = chartSpecs(a);
     const assets = root.PAYG_ASSETS || {};
     const body = [], toc = [], media = [];
@@ -196,7 +197,8 @@
     }
     async function shot(key, cap, cm) {
       const uri = assets.shots && assets.shots[key]; if (!uri) return;
-      const bytes = D.dataUriToBytes(uri), sz = D.imageSize(bytes), im = addMedia(Object.assign({ bytes }, sz), cap);
+      const themed = D.imageForTheme ? await D.imageForTheme(uri, theme) : uri;
+      const bytes = D.dataUriToBytes(themed), sz = D.imageSize(bytes), im = addMedia(Object.assign({ bytes }, sz), cap);
       body.push(para(drawing(im, cm || 15.5, cap), { align: 'center', keepNext: true, spacing: [100, 0] })); caption('Figure', cap);
     }
     const sectBreak = (landscape, restart) => {
@@ -698,7 +700,7 @@
       '<w:style w:type="paragraph" w:styleId="TOC2"><w:name w:val="toc 2"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="39"/><w:pPr><w:spacing w:before="0" w:after="20"/><w:ind w:left="340"/></w:pPr></w:style>' +
       '<w:style w:type="table" w:default="1" w:styleId="TableNormal"><w:name w:val="Normal Table"/><w:uiPriority w:val="99"/><w:semiHidden/><w:tblPr><w:tblInd w:w="0" w:type="dxa"/><w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:left w:w="108" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar></w:tblPr></w:style></w:styles>';
     const numberingXml = XML + '<w:numbering ' + NS + '><w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="hybridMultilevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="567" w:hanging="283"/></w:pPr><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:color w:val="16803A"/></w:rPr></w:lvl></w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num></w:numbering>';
-    const settingsXml = XML + '<w:settings ' + NS + '><w:zoom w:percent="100"/><w:defaultTabStop w:val="708"/><w:characterSpacingControl w:val="doNotCompress"/><w:compat><w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/></w:compat></w:settings>';
+    const settingsXml = XML + '<w:settings ' + NS + '><w:zoom w:percent="100"/><w:defaultTabStop w:val="708"/><w:characterSpacingControl w:val="doNotCompress"/><w:compat><w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/></w:compat><w:updateFields w:val="true"/></w:settings>';
     const hdr = (inner) => XML + '<w:hdr ' + NS + '>' + inner + '</w:hdr>';
     const ftr = (inner) => XML + '<w:ftr ' + NS + '>' + inner + '</w:ftr>';
     const hdrXml = hdr(para(run('Solar PAYG Mauritanie — Étude de faisabilité', { size: 16, color: '64748B' }), { align: 'left', border: null, spacing: [0, 0] }).replace('<w:pPr>', '<w:pPr><w:pBdr><w:bottom w:val="single" w:sz="6" w:space="4" w:color="D4AF37"/></w:pBdr>'));
