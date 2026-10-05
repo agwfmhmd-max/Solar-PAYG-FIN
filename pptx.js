@@ -80,6 +80,7 @@
       const sm = await D.svgToPngTransparent(assets.logoSvg, 1092, 1092, 0.2); logo = 'image/png;base64,' + b64(sm.bytes);
       const bg = await D.svgToPngTransparent(assets.logoSvg, 1092, 1092, 0.42); logoBig = 'image/png;base64,' + b64(bg.bytes);
     } } catch (e) { /* logo facultatif */ }
+    const instLogo = assets.instLogo ? assets.instLogo.replace(/^data:/, '') : null; // logo ISCAE (JPEG)
     // Capture du prototype dans le thème actif (sombre / clair) ; repli sur la version sombre si la claire est absente
     const shotUri = (k) => (assets.shot ? assets.shot(k, isLight) : (assets.shots && assets.shots[k]) || null);
     const STEPS = { 1: 'Étape 1/7 · Problème en Mauritanie', 2: 'Étape 2/7 · Enquête → preuve du besoin', 3: 'Étape 3/7 · Étude de marché → demande', 4: 'Étape 4/7 · Prototype → démonstration', 5: 'Étape 5/7 · Hypothèses financières', 6: 'Étape 6/7 · Faisabilité → rentabilité et risques', 7: 'Étape 7/7 · Conclusion → décision' };
@@ -112,7 +113,7 @@
       s.addShape(pres.ShapeType.rect, { x: 0, y: 0, w: W, h: 0.1, fill: { color: T.ac(K.green) }, line: { color: T.ac(K.green), width: 0 }, objectName: 'Bandeau' });
       s.addShape(pres.ShapeType.rect, { x: 0, y: 0.1, w: W, h: 0.035, fill: { color: T.ac(K.gold) }, line: { color: T.ac(K.gold), width: 0 }, objectName: 'Liseré' });
       s._chrome = false; s._g = 0;
-      s.addText(title, { x: 0.5, y: 0.3, w: 10.2, h: 0.75, fontFace: FONT, fontSize: 28, bold: true, color: T.head, charSpacing: 1, valign: 'middle', margin: 0, isTextBox: true, fit: 'shrink' });
+      s.addText(title, { x: 0.5, y: 0.3, w: 9.9, h: 0.75, fontFace: FONT, fontSize: 28, bold: true, color: T.head, charSpacing: 1, valign: 'middle', margin: 0, isTextBox: true, fit: 'shrink' });
       s.addShape(pres.ShapeType.rect, { x: 0.5, y: 1.07, w: 1.3, h: 0.05, fill: { color: T.ringA }, line: { color: T.ringA, width: 0 }, objectName: 'FX0~wipe' });
       if (step) s.addText(STEPS[step], { x: 0.5, y: 1.15, w: 9, h: 0.28, fontFace: FONT, fontSize: 12, italic: true, color: T.muted, margin: 0, isTextBox: true });
       s._g = null; s._chrome = true;
@@ -120,8 +121,13 @@
         s.addShape(pres.ShapeType.ellipse, { x: W - 1.22, y: 0.3, w: 0.82, h: 0.82, fill: { color: 'FFFFFF' }, line: { color: T.ac(K.gold), width: 1.5 }, objectName: '!!logo1' });
         s.addImage({ data: logo, x: W - 1.2, y: 0.32, w: 0.78, h: 0.78, objectName: '!!logo2' });
       }
+      if (instLogo) {
+        s.addShape(pres.ShapeType.ellipse, { x: W - 2.17, y: 0.3, w: 0.82, h: 0.82, fill: { color: 'FFFFFF' }, line: { color: T.ringA, width: 1.5 }, objectName: '!!inst1' });
+        s.addImage({ data: instLogo, x: W - 2.13, y: 0.34, w: 0.74, h: 0.74, rounding: true, objectName: '!!inst2' });
+        s.addText('ISCAE', { x: W - 2.45, y: 1.14, w: 1.4, h: 0.22, fontFace: FONT, fontSize: 9, bold: true, color: T.muted, align: 'center', charSpacing: 2, margin: 0, isTextBox: true, objectName: '!!inst3' });
+      }
       s.addShape(pres.ShapeType.line, { x: 0.5, y: H - 0.5, w: W - 1, h: 0, line: { color: T.line, width: 0.75 }, objectName: 'Filet de pied' });
-      s.addText('© 2027 Solar PAYG Mauritanie — MDA — Tous droits réservés   |   Département Management, Economie et Droit', { x: 0.5, y: H - 0.45, w: 10.5, h: 0.3, fontFace: FONT, fontSize: 10, color: T.muted, margin: 0, isTextBox: true, objectName: 'Pied de page' });
+      s.addText('© 2027 Solar PAYG Mauritanie — ISCAE · Banque et Assurance — MDA — Tous droits réservés   |   Département Management, Economie et Droit', { x: 0.5, y: H - 0.45, w: 10.5, h: 0.3, fontFace: FONT, fontSize: 10, color: T.muted, margin: 0, isTextBox: true, objectName: 'Pied de page' });
       s.addText(String(count), { x: W - 1.1, y: H - 0.45, w: 0.6, h: 0.3, fontFace: FONT, fontSize: 10, bold: true, color: T.ac(K.green), align: 'right', margin: 0, isTextBox: true, objectName: 'Numéro' });
       s._chrome = false;
       if (notes) s.addNotes(notes);
@@ -200,8 +206,15 @@
         s.addImage({ data: logoBig || logo, x: 0.78, y: 0.83, w: 2.24, h: 2.24, objectName: '!!logo2' });
         s._g = null;
       }
-      s.addText('SOUTENANCE — ÉTUDE DE FAISABILITÉ', { x: 3.5, y: 0.8, w: 9.3, h: 0.4, fontFace: FONT, fontSize: 16, bold: true, color: T.kicker, charSpacing: 3, margin: 0, isTextBox: true, objectName: 'FX2~float' });
-      s.addText('Financement PAYG de l’énergie solaire en Mauritanie', { x: 3.5, y: 1.3, w: 9.3, h: 1.7, fontFace: FONT, fontSize: 38, bold: true, color: T.head, margin: 0, valign: 'top', isTextBox: true, fit: 'shrink', objectName: 'FX3~float' });
+      if (instLogo) {
+        s._g = 10;
+        s.addShape(pres.ShapeType.roundRect, { x: W - 3.55, y: 0.3, w: 3.05, h: 1.0, fill: { color: 'FFFFFF' }, line: { color: T.ac(K.gold), width: 1.5 }, rectRadius: 0.12 });
+        s.addImage({ data: instLogo, x: W - 3.47, y: 0.36, w: 0.88, h: 0.88 });
+        s.addText([{ text: 'ISCAE', options: { fontSize: 26, bold: true, color: '0F172A', breakLine: true } }, { text: 'Banque et Assurance', options: { fontSize: 12, bold: true, color: '16803A' } }], { x: W - 2.5, y: 0.36, w: 1.95, h: 0.88, fontFace: FONT, margin: 0, valign: 'middle', isTextBox: true });
+        s._g = null;
+      }
+      s.addText('SOUTENANCE — ÉTUDE DE FAISABILITÉ', { x: 3.5, y: 0.8, w: 6.1, h: 0.4, fontFace: FONT, fontSize: 16, bold: true, color: T.kicker, charSpacing: 3, margin: 0, isTextBox: true, objectName: 'FX2~float' });
+      s.addText('Financement PAYG de l’énergie solaire en Mauritanie', { x: 3.5, y: 1.5, w: 9.3, h: 1.5, fontFace: FONT, fontSize: 36, bold: true, color: T.head, margin: 0, valign: 'top', isTextBox: true, fit: 'shrink', objectName: 'FX3~float' });
       s.addShape(pres.ShapeType.rect, { x: 3.5, y: 3.05, w: 2.2, h: 0.05, fill: { color: T.ringA }, line: { color: T.ringA, width: 0 }, objectName: 'FX4~wipe' });
       s.addText('Scoring de crédit · Micro-assurance · Paiement mobile · Verrouillage à distance (IoT)', { x: 3.5, y: 3.3, w: 9.3, h: 0.5, fontFace: FONT, fontSize: 16, color: T.sub, margin: 0, isTextBox: true, objectName: 'FX5~float' });
       s.addText('Solar PAYG Mauritanie 2027', { x: 3.5, y: 4.1, w: 9.3, h: 0.5, fontFace: FONT, fontSize: 22, bold: true, color: T.head, margin: 0, isTextBox: true, objectName: 'FX6~float' });
@@ -459,12 +472,17 @@
         s.addImage({ data: logoBig || logo, x: W / 2 - 1.14, y: 1.26, w: 2.28, h: 2.28, objectName: '!!logo2' });
         s._g = null;
       }
+      if (instLogo) {
+        s.addText([{ text: 'ISCAE', options: { fontSize: 18, bold: true, color: T.head } }, { text: '  ·  Banque et Assurance', options: { fontSize: 18, bold: true, color: T.ac(K.green) } }], { x: 1, y: 6.15, w: W - 2, h: 0.4, fontFace: FONT, align: 'center', margin: 0, isTextBox: true, objectName: 'FX7~float' });
+        s.addShape(pres.ShapeType.ellipse, { x: 0.6, y: 0.5, w: 1.3, h: 1.3, fill: { color: 'FFFFFF' }, line: { color: T.ac(K.gold), width: 2 }, objectName: '!!inst1' });
+        s.addImage({ data: instLogo, x: 0.67, y: 0.57, w: 1.16, h: 1.16, rounding: true, objectName: '!!inst2' });
+      }
       s.addText('Merci de votre attention', { x: 1, y: 4.0, w: W - 2, h: 0.9, fontFace: FONT, fontSize: 40, bold: true, color: T.head, align: 'center', charSpacing: 2, margin: 0, isTextBox: true, objectName: 'FX2~float' });
       s.addShape(pres.ShapeType.rect, { x: W / 2 - 1.1, y: 4.98, w: 2.2, h: 0.05, fill: { color: T.ringA }, line: { color: T.ringA, width: 0 }, objectName: 'FX3~wipe' });
       s.addText('Questions et discussion', { x: 1, y: 5.2, w: W - 2, h: 0.5, fontFace: FONT, fontSize: 22, color: T.sub, align: 'center', margin: 0, isTextBox: true, objectName: 'FX4~float' });
       const team = (a.team && a.team.length ? a.team : []).join('  ·  ');
-      if (team) s.addText(team, { x: 1, y: 5.85, w: W - 2, h: 0.45, fontFace: FONT, fontSize: 16, color: T.gold, align: 'center', margin: 0, isTextBox: true, objectName: 'FX5~float' });
-      s.addText('Solar PAYG Mauritanie 2027  ·  Département Management, Economie et Droit', { x: 1, y: 6.6, w: W - 2, h: 0.35, fontFace: FONT, fontSize: 13, color: T.muted, align: 'center', margin: 0, isTextBox: true, objectName: 'FX6~fade' });
+      if (team) s.addText(team, { x: 1, y: 5.7, w: W - 2, h: 0.4, fontFace: FONT, fontSize: 15, color: T.gold, align: 'center', margin: 0, isTextBox: true, objectName: 'FX5~float' });
+      s.addText('Solar PAYG Mauritanie 2027  ·  Département Management, Economie et Droit', { x: 1, y: 6.7, w: W - 2, h: 0.3, fontFace: FONT, fontSize: 12, color: T.muted, align: 'center', margin: 0, isTextBox: true, objectName: 'FX6~fade' });
       s.addNotes('Remercier le jury et inviter aux questions. Garder le prototype ouvert pour une démonstration si demandé.');
     }
 

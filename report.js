@@ -217,8 +217,16 @@
     /* =================== PAGE DE GARDE =================== */
     let logo = null;
     try { if (assets.logoSvg) { const lp = await D.svgToPngTransparent(assets.logoSvg, 1092, 1092, 0.5); logo = addMedia(lp, 'Logo Solar PAYG Mauritanie'); } } catch (e) { console.warn('[report] logo', e); }
-    if (logo) body.push(para(drawing(logo, 4.6, 'Logo Solar PAYG Mauritanie'), { align: 'center', spacing: [600, 200] }));
-    body.push(para(run(DEPT.toUpperCase(), { size: 22, bold: true, color: '16803A' }), { align: 'center', spacing: [logo ? 0 : 1800, 120] }));
+    // Identité de l'institut : logo ISCAE + nom + spécialité (en tête de la page de garde)
+    if (assets.instLogo) {
+      try { const ub = D.dataUriToBytes(assets.instLogo), us = D.imageSize(ub), il = addMedia(Object.assign({ bytes: ub }, us), 'Logo ISCAE');
+        body.push(para(drawing(il, 3.4, 'Logo ISCAE'), { align: 'center', spacing: [0, 60] }));
+      } catch (e) { console.warn('[report] logo ISCAE', e); }
+    }
+    body.push(para(run('ISCAE', { size: 44, bold: true, color: '0F172A' }), { align: 'center', spacing: [0, 20] }));
+    body.push(para(run('Spécialité : ', { size: 24, color: '64748B' }) + run('Banque et Assurance', { size: 26, bold: true, color: '16803A' }), { align: 'center', spacing: [0, 160] }));
+    if (logo) body.push(para(drawing(logo, 3.6, 'Logo Solar PAYG Mauritanie'), { align: 'center', spacing: [200, 120] }));
+    body.push(para(run(DEPT.toUpperCase(), { size: 22, bold: true, color: '16803A' }), { align: 'center', spacing: [logo ? 0 : 600, 120] }));
     body.push(para(run('Rapport de projet — Prototype FinTech & Énergie', { size: 20, color: '64748B' }), { align: 'center', spacing: [0, 700] }));
     body.push('<w:tbl><w:tblPr><w:tblW w:w="9638" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="280" w:type="dxa"/><w:left w:w="300" w:type="dxa"/><w:bottom w:w="280" w:type="dxa"/><w:right w:w="300" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid><w:gridCol w:w="9638"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w="9638" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="14532D"/></w:tcPr>' +
       para(run('ÉTUDE DE FAISABILITÉ', { size: 24, bold: true, color: 'FBBF24' }), { align: 'center', spacing: [0, 120] }) +
@@ -702,9 +710,9 @@
     const fontTableXml = XML + '<w:fonts ' + NS + '><w:font w:name="Arial"><w:panose1 w:val="020B0604020202020204"/><w:charset w:val="00"/><w:family w:val="swiss"/><w:pitch w:val="variable"/></w:font></w:fonts>';
     const hdr = (inner) => XML + '<w:hdr ' + NS + '>' + inner + '</w:hdr>';
     const ftr = (inner) => XML + '<w:ftr ' + NS + '>' + inner + '</w:ftr>';
-    const hdrXml = hdr(para(run('Solar PAYG Mauritanie — Étude de faisabilité', { size: 16, color: '64748B' }), { align: 'left', border: null, spacing: [0, 0] }).replace('<w:pPr>', '<w:pPr><w:pBdr><w:bottom w:val="single" w:sz="6" w:space="4" w:color="D4AF37"/></w:pBdr>'));
+    const hdrXml = hdr(para(run('ISCAE — Banque et Assurance  |  Solar PAYG Mauritanie — Étude de faisabilité', { size: 16, color: '64748B' }), { align: 'left', border: null, spacing: [0, 0] }).replace('<w:pPr>', '<w:pPr><w:pBdr><w:bottom w:val="single" w:sz="6" w:space="4" w:color="D4AF37"/></w:pBdr>'));
     const fld = (ins) => '<w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> ' + ins + ' </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r>' + run('1', { size: 16, color: '64748B' }) + '<w:r><w:fldChar w:fldCharType="end"/></w:r>';
-    const ftrXml = ftr(para(run('© 2027 Solar PAYG Mauritanie — MDA — Tous droits réservés  |  ' + DEPT + '  |  Page ', { size: 16, color: '64748B' }) + fld('PAGE'), { align: 'center' }));
+    const ftrXml = ftr(para(run('© 2027 Solar PAYG Mauritanie — ISCAE — MDA — Tous droits réservés  |  ' + DEPT + '  |  Page ', { size: 16, color: '64748B' }) + fld('PAGE'), { align: 'center' }));
     const emptyHdr = hdr('<w:p/>'), emptyFtr = ftr('<w:p/>');
     const mediaCT = [...new Set(media.map((m) => m.name.split('.').pop()))].map((e) => '<Default Extension="' + e + '" ContentType="' + (e === 'png' ? 'image/png' : 'image/jpeg') + '"/>').join('');
     const files = [
