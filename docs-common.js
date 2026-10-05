@@ -45,7 +45,7 @@
 
   /* files : [{ name, data: string | Uint8Array }] -> tableau de Uint8Array (à passer à new Blob) */
   function zip(files) {
-    const DOS_TIME = (12 << 11), DOS_DATE = (((2027 - 1980) << 9) | (1 << 5) | 1) & 0xFFFF;
+    const DOS_TIME = (12 << 11), DOS_DATE = (((2026 - 1980) << 9) | (1 << 5) | 1) & 0xFFFF;
     const parts = [], central = []; let offset = 0;
     const u16 = (v) => [v & 255, (v >>> 8) & 255], u32 = (v) => [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255];
     files.forEach((f) => {
@@ -62,6 +62,35 @@
     });
     parts.push(Uint8Array.from([].concat(u32(0x06054b50), u16(0), u16(0), u16(central.length), u16(central.length), u32(cSize), u32(cStart), u16(0))));
     return parts;
+  }
+
+
+  /* ---------- Lecture d'un ZIP (méthodes « stored » et « deflate ») ----------
+   * Sert à retoucher un .pptx produit par PptxGenJS (ajout des transitions et animations). Sans bibliothèque :
+   * la décompression utilise DecompressionStream (navigateurs récents et Node 18+). Retourne [{ name, data: Uint8Array }]. */
+  async function unzip(u8) {
+    const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+    let e = u8.length - 22;
+    while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+    if (e < 0) throw new Error('zip: fin de répertoire introuvable');
+    const count = dv.getUint16(e + 10, true); let p = dv.getUint32(e + 16, true);
+    const dec = new TextDecoder(), out = [];
+    for (let i = 0; i < count; i++) {
+      if (dv.getUint32(p, true) !== 0x02014b50) throw new Error('zip: entrée corrompue');
+      const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true), nlen = dv.getUint16(p + 28, true), xlen = dv.getUint16(p + 30, true), clen = dv.getUint16(p + 32, true), lo = dv.getUint32(p + 42, true);
+      const name = dec.decode(u8.subarray(p + 46, p + 46 + nlen));
+      const lnlen = dv.getUint16(lo + 26, true), lxlen = dv.getUint16(lo + 28, true), start = lo + 30 + lnlen + lxlen;
+      const raw = u8.subarray(start, start + csize);
+      let data;
+      if (method === 0) data = raw.slice();
+      else if (method === 8) {
+        const ds = new DecompressionStream('deflate-raw'); const w = ds.writable.getWriter(); w.write(raw); w.close();
+        data = new Uint8Array(await new Response(ds.readable).arrayBuffer());
+      } else throw new Error('zip: méthode ' + method + ' non prise en charge');
+      if (name.slice(-1) !== '/') out.push({ name, data });
+      p += 46 + nlen + xlen + clen;
+    }
+    return out;
   }
 
   /* ---------- Données binaires ---------- */
@@ -104,16 +133,6 @@
         img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('svg')); };
         img.src = url;
       } catch (e) { reject(e); }
-    });
-  }
-  // SVG -> JPEG (arrière-plans de diapositives : lourds en PNG, légers en JPEG)
-  function svgToJpeg(svg, w, h, scale, q) {
-    scale = scale || 1;
-    return new Promise((resolve, reject) => {
-      const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }); const url = URL.createObjectURL(blob); const img = new Image();
-      img.onload = () => { try { const cv = document.createElement('canvas'); cv.width = Math.round(w * scale); cv.height = Math.round(h * scale); const cx = cv.getContext('2d'); cx.fillStyle = '#000'; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url); resolve({ bytes: dataUriToBytes(cv.toDataURL('image/jpeg', q || 0.86)), w: cv.width, h: cv.height, ext: 'jpeg', mime: 'image/jpeg' }); } catch (e) { reject(e); } };
-      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('svg')); };
-      img.src = url;
     });
   }
   // PNG avec fond transparent (logo)
@@ -232,60 +251,6 @@
   /* Rend une spécification {svg,w,h} en PNG */
   const render = (c) => svgToPng(c.svg, c.w, c.h, 2);
 
-  /* ---------- Chargement de bibliothèques locales (dossier vendor/) ---------- */
-  const loading = {};
-  function loadScript(src, fallback) {
-    if (loading[src]) return loading[src];
-    const tryLoad = (u) => new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = u; s.async = true; s.onload = () => resolve(); s.onerror = () => { s.remove(); reject(new Error('load ' + u)); }; document.head.appendChild(s); });
-    loading[src] = tryLoad(src).catch((e) => { if (fallback) return tryLoad(fallback); throw e; }).catch((e) => { delete loading[src]; throw e; });
-    return loading[src];
-  }
-
-  /* ---------- Captures du prototype, au thème (clair / sombre) et à l'instant de l'export ---------- */
-  const MODULES = [['scoring', '#module-scoring', 1500], ['pricing', '#module-pricing', 1450], ['iot', '#module-iot', 1100], ['financials', '#module-financials', 1500], ['market', '#module-survey', 1500], ['assumptions', '#module-assumptions', 1350]];
-  const theme = () => (document.documentElement.classList.contains('light') ? 'light' : 'dark');
-  function staticShots(th) {
-    const set = (root.PAYG_ASSETS && root.PAYG_ASSETS.shots && (root.PAYG_ASSETS.shots[th] || root.PAYG_ASSETS.shots.dark)) || {};
-    const out = {};
-    Object.keys(set).forEach((k) => { const bytes = dataUriToBytes(set[k]); const sz = imageSize(bytes); out[k === 'iot_locked' ? 'iot' : k] = { bytes, w: sz.w, h: sz.h, ext: sz.ext, mime: sz.mime }; });
-    return out;
-  }
-  /* Retourne { theme, live, at, shots: { scoring, pricing, iot, financials, market, assumptions, iot_unlocked? } } */
-  async function captureShots(onProgress) {
-    const th = theme(), now = new Date();
-    const at = now.toLocaleDateString('fr-FR') + ' ' + now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-    const out = { theme: th, live: false, at, shots: {} };
-    try {
-      await loadScript('vendor/html2canvas.min.js', 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js');
-      if (typeof root.html2canvas !== 'function') throw new Error('html2canvas');
-      const bg = getComputedStyle(document.body).backgroundColor;
-      const bgc = bg && bg !== 'rgba(0, 0, 0, 0)' ? bg : (th === 'light' ? '#f1f5f9' : '#020617');
-      let k = 0;
-      for (const m of MODULES) {
-        const el = document.querySelector(m[1]);
-        if (onProgress) onProgress(++k, MODULES.length);
-        if (!el || el.classList.contains('hidden') || !el.offsetWidth) continue;
-        try {
-          const h = Math.min(el.scrollHeight, m[2]);
-          const cv = await root.html2canvas(el, { backgroundColor: bgc, scale: 1.4, logging: false, useCORS: true, height: h, windowWidth: document.documentElement.clientWidth, scrollX: -root.scrollX, scrollY: -root.scrollY, ignoreElements: (n) => n.id === 'authChip',
-            onclone: (doc) => { // corrections d'affichage propres à html2canvas (listes déroulantes, marqueurs de <summary>, animations)
-              doc.querySelectorAll('select').forEach((s) => { const dv = doc.createElement('div'); dv.className = s.className; dv.style.cssText = s.style.cssText; dv.style.display = 'flex'; dv.style.alignItems = 'center'; dv.style.overflow = 'hidden'; dv.style.whiteSpace = 'nowrap'; dv.textContent = s.options && s.options[s.selectedIndex] ? s.options[s.selectedIndex].text : ''; if (s.parentNode) s.parentNode.replaceChild(dv, s); });
-              doc.querySelectorAll('summary').forEach((s) => { s.style.listStyle = 'none'; });
-              const st = doc.createElement('style'); st.textContent = '*{animation:none!important;transition:none!important} summary::-webkit-details-marker{display:none} summary::marker{content:""}'; doc.head.appendChild(st);
-            } });
-          const bytes = dataUriToBytes(cv.toDataURL('image/jpeg', 0.84));
-          out.shots[m[0]] = { bytes, w: cv.width, h: cv.height, ext: 'jpeg', mime: 'image/jpeg' };
-        } catch (e) { console.warn('[capture]', m[0], e); }
-      }
-      out.live = Object.keys(out.shots).length >= 3;
-    } catch (e) { console.warn('[capture] indisponible, captures de secours utilisées', e); }
-    // images de secours (même thème) pour tout module non capturé ; « iot_unlocked » sert aux démonstrations du parcours client
-    const st = staticShots(th);
-    Object.keys(st).forEach((k) => { if (!out.shots[k]) out.shots[k] = st[k]; });
-    if (st.iot_unlocked) out.shots.iot_unlocked = st.iot_unlocked;
-    return out;
-  }
-
-  const API = { C, SERIES, loadScript, captureShots, staticShots, theme, esc, clean, XML, num, mru, pct, pctRaw, compact, NB, zip, utf8, dataUriToBytes, imageSize, svgToPng, svgToPngTransparent, svgToJpeg, hbar, gbars, lines, story, STORY, render, wrapText };
+  const API = { C, SERIES, esc, clean, XML, num, mru, pct, pctRaw, compact, NB, zip, unzip, utf8, dataUriToBytes, imageSize, svgToPng, svgToPngTransparent, hbar, gbars, lines, story, STORY, render, wrapText };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.PaygDocs = API;
 })(typeof window !== 'undefined' ? window : globalThis);

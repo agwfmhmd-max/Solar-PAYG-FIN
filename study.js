@@ -382,33 +382,24 @@
     if (window.PAYG_ASSETS) return Promise.resolve();
     return new Promise((resolve) => { const s = document.createElement('script'); s.src = 'assets.js'; s.onload = () => resolve(); s.onerror = () => resolve(); document.head.appendChild(s); });
   }
-  // Les captures du prototype sont prises EN DIRECT au moment de l'export, avec le thème (clair / sombre) actif à cet instant.
-  async function liveShots(lbl) {
-    const base = lang() === 'ar' ? 'جارٍ التقاط الصور… ' : 'Capture des écrans… ';
-    return window.PaygDocs.captureShots((i, n) => { if (lbl) lbl.textContent = base + i + '/' + n; });
-  }
   async function exportDoc(kind, sheets) {
     if (docBusy) return; docBusy = true;
     const btn = document.querySelector('[data-export="' + kind + '"]'), lbl = btn ? btn.querySelector('span') : null, old = lbl ? lbl.textContent : '';
     if (lbl) lbl.textContent = lang() === 'ar' ? 'جارٍ الإنشاء…' : 'Génération…';
     try {
       await ensureAssets();
-      if (!window.PaygDocs) throw new Error('docs');
-      const ctx = docContext();
-      ctx.shots = await liveShots(lbl);
-      if (lbl) lbl.textContent = lang() === 'ar' ? 'جارٍ الإنشاء…' : 'Génération…';
       if (kind === 'docx') {
-        if (!window.PaygReport) throw new Error('report');
-        const out = await window.PaygReport.build(ctx);
-        download('rapport_etude_faisabilite_payg_' + stamp() + '.docx', out instanceof Blob ? out : new Blob(out, { type: window.PaygReport.MIME }));
+        if (!window.PaygReport || !window.PaygDocs) throw new Error('report');
+        const parts = await window.PaygReport.build(docContext());
+        download('rapport_etude_faisabilite_payg_' + stamp() + '.docx', new Blob(parts, { type: window.PaygReport.MIME }));
       } else {
         if (!window.PaygPptx) throw new Error('pptx');
-        await window.PaygPptx.write(ctx, 'soutenance_etude_faisabilite_payg_' + stamp() + '.pptx');
+        await window.PaygPptx.write(docContext(), 'soutenance_etude_faisabilite_payg_' + stamp() + '.pptx');
       }
     } catch (err) {
       console.error('[export-' + kind + ']', err);
-      if (kind === 'docx' && window.PaygReport && window.PaygReport.buildTables) { // secours : version simple (tableaux uniquement)
-        try { download('rapport_etude_faisabilite_payg_' + stamp() + '.docx', await window.PaygReport.buildTables(sheets, { title: t().printTitle })); } catch (e2) { console.error(e2); }
+      if (kind === 'docx' && window.PaygWord) { // secours : version simple (tableaux uniquement)
+        download('rapport_etude_faisabilite_payg_' + stamp() + '.docx', new Blob(window.PaygWord.build(sheets, { lang: lang(), title: t().printTitle, modelDate: E.MODEL_DATE }), { type: window.PaygWord.MIME }));
         alert(lang() === 'ar' ? 'تعذر إنشاء التقرير الكامل؛ تم تصدير نسخة مبسطة (جداول فقط).' : 'Le rapport complet n’a pas pu être généré ; une version simplifiée (tableaux) a été exportée.');
       } else alert(kind === 'pptx' && /load|network|pptx/i.test(String(err && err.message)) ? (lang() === 'ar' ? 'PowerPoint غير متاح بدون اتصال بالإنترنت.' : 'PowerPoint indisponible hors connexion.') : (lang() === 'ar' ? 'تعذر إنشاء الملف.' : 'Impossible de générer le fichier.'));
     } finally { if (lbl) lbl.textContent = old; docBusy = false; }
