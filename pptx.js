@@ -219,8 +219,8 @@
       s.addText('Scoring de crédit · Micro-assurance · Paiement mobile · Verrouillage à distance (IoT)', { x: 3.5, y: 3.3, w: 9.3, h: 0.5, fontFace: FONT, fontSize: 16, color: T.sub, margin: 0, isTextBox: true, objectName: 'FX5~float' });
       s.addText('Solar PAYG Mauritanie 2027', { x: 3.5, y: 4.1, w: 9.3, h: 0.5, fontFace: FONT, fontSize: 22, bold: true, color: T.head, margin: 0, isTextBox: true, objectName: 'FX6~float' });
       const team = (a.team && a.team.length ? a.team : []).join('  ·  ');
-      if (team) s.addText(team, { x: 3.5, y: 4.7, w: 9.3, h: 0.5, fontFace: FONT, fontSize: 18, color: T.gold, margin: 0, isTextBox: true, objectName: 'FX7~float' });
-      s.addText('Spécialité : Banque et Assurance', { x: 3.5, y: 5.2, w: 9.3, h: 0.45, fontFace: FONT, fontSize: 18, bold: true, color: T.ac(K.green), margin: 0, valign: 'middle', isTextBox: true, objectName: 'FX9~float' });
+      if (team) s.addText(team, { x: 3.5, y: 4.6, w: 9.3, h: 0.65, fontFace: FONT, fontSize: 15, color: T.gold, margin: 0, isTextBox: true, objectName: 'FX7~float' });
+      s.addText('Spécialité : Banque et Assurance', { x: 3.5, y: 5.35, w: 9.3, h: 0.4, fontFace: FONT, fontSize: 17, bold: true, color: T.ac(K.green), margin: 0, valign: 'middle', isTextBox: true, objectName: 'FX9~float' });
       s.addText('Département Management, Economie et Droit', { x: 0.7, y: 6.15, w: 8, h: 0.4, fontFace: FONT, fontSize: 16, bold: true, color: T.head, margin: 0, isTextBox: true, objectName: 'FX8~float' });
       s.addText('© 2027 Solar PAYG Mauritanie — MDA — Tous droits réservés  ·  Généré le ' + (a.date || ''), { x: 0.7, y: 6.65, w: 11.5, h: 0.3, fontFace: FONT, fontSize: 11, color: T.muted, margin: 0, isTextBox: true, objectName: 'FX9~fade' });
       s.addNotes('Présenter le projet en une phrase : une entreprise qui finance des kits solaires et se fait rembourser par petits paiements mobiles. Annoncer le fil de la soutenance : problème, enquête, marché, prototype, finance, faisabilité, conclusion.');

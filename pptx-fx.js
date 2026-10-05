@@ -62,8 +62,11 @@
 
   /* ---------- Analyse d'une diapositive ---------- */
   function shapesOf(xml) {
-    const out = []; const re = /<p:(sp|pic|graphicFrame|cxnSp)>[\s\S]*?<p:cNvPr id="(\d+)" name="([^"]*)"/g; let m;
-    while ((m = re.exec(xml))) out.push({ kind: m[1], id: m[2], name: m[3] });
+    const out = []; const re = /<p:(sp|pic|graphicFrame|cxnSp)>([\s\S]*?)<\/p:\1>/g; let m;
+    while ((m = re.exec(xml))) {
+      const c = /<p:cNvPr id="(\d+)" name="([^"]*)"/.exec(m[2]); if (!c) continue;
+      out.push({ kind: m[1], id: c[1], name: c[2], hasText: /<p:txBody>/.test(m[2]) });
+    }
     return out;
   }
   // graphicFrame : graphique (a:chart / c:chart) ou tableau (a:tbl)
@@ -92,7 +95,7 @@
       const delay = 150 + i * step;
       groups[g].forEach((s, k) => {
         let eff = s.eff; if (!B[eff] || ['spin', 'floatLoop', 'pulse', 'root'].indexOf(eff) >= 0) eff = 'fade';
-        const grp = s.kind === 'sp' || (s.kind === 'graphicFrame' && frameKind(xml, s.id) === 'chart');
+        const grp = (s.kind === 'sp' && s.hasText) || (s.kind === 'graphicFrame' && frameKind(xml, s.id) === 'chart'); // pas de liste de construction pour une forme sans texte
         effects += B[eff](s.id, delay + k * 20, grp); addBld(s, grp);
       });
     });
@@ -111,6 +114,9 @@
     const out = files.map((f) => {
       const m = /^ppt\/slides\/slide(\d+)\.xml$/.exec(f.name); if (!m) return f;
       let xml = dec.decode(f.data); const idx = +m[1] - 1;
+      { const seen = {}; let mx = 0; xml.replace(/<p:cNvPr id="(\d+)"/g, (a, i) => { mx = Math.max(mx, +i); return a; });
+        xml = xml.replace(/<p:cNvPr id="(\d+)"/g, (a, i) => { if (seen[i]) return '<p:cNvPr id="' + (++mx) + '"'; seen[i] = 1; return a; }); } // identifiants de formes uniques
+      let uid = 0; xml = xml.replace(/name="((?:FX|!!)[^"]*)"/g, (all, n) => 'name="' + n + (/^!!/.test(n) ? '' : '-' + (++uid)) + '"'); // noms d'objets uniques sur la diapositive
       const kind = (opts.transitions && opts.transitions[idx]) || opts.transition || 'morph';
       const timing = slideFx(xml, opts);
       const add = transitionXml(kind) + (timing || '');
