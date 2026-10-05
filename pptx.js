@@ -210,7 +210,7 @@
         s._g = 10;
         s.addShape(pres.ShapeType.roundRect, { x: W - 3.55, y: 0.3, w: 3.05, h: 1.0, fill: { color: 'FFFFFF' }, line: { color: T.ac(K.gold), width: 1.5 }, rectRadius: 0.12 });
         s.addImage({ data: instLogo, x: W - 3.47, y: 0.36, w: 0.88, h: 0.88 });
-        s.addText([{ text: 'ISCAE', options: { fontSize: 26, bold: true, color: '0F172A', breakLine: true } }, { text: 'Banque et Assurance', options: { fontSize: 12, bold: true, color: '16803A' } }], { x: W - 2.5, y: 0.36, w: 1.95, h: 0.88, fontFace: FONT, margin: 0, valign: 'middle', isTextBox: true });
+        s.addText('ISCAE', { x: W - 2.5, y: 0.36, w: 1.95, h: 0.88, fontFace: FONT, fontSize: 30, bold: true, color: '0F172A', charSpacing: 2, margin: 0, valign: 'middle', isTextBox: true });
         s._g = null;
       }
       s.addText('SOUTENANCE — ÉTUDE DE FAISABILITÉ', { x: 3.5, y: 0.8, w: 6.1, h: 0.4, fontFace: FONT, fontSize: 16, bold: true, color: T.kicker, charSpacing: 3, margin: 0, isTextBox: true, objectName: 'FX2~float' });
@@ -220,6 +220,7 @@
       s.addText('Solar PAYG Mauritanie 2027', { x: 3.5, y: 4.1, w: 9.3, h: 0.5, fontFace: FONT, fontSize: 22, bold: true, color: T.head, margin: 0, isTextBox: true, objectName: 'FX6~float' });
       const team = (a.team && a.team.length ? a.team : []).join('  ·  ');
       if (team) s.addText(team, { x: 3.5, y: 4.7, w: 9.3, h: 0.5, fontFace: FONT, fontSize: 18, color: T.gold, margin: 0, isTextBox: true, objectName: 'FX7~float' });
+      s.addText('Spécialité : Banque et Assurance', { x: 3.5, y: 5.2, w: 9.3, h: 0.45, fontFace: FONT, fontSize: 18, bold: true, color: T.ac(K.green), margin: 0, valign: 'middle', isTextBox: true, objectName: 'FX9~float' });
       s.addText('Département Management, Economie et Droit', { x: 0.7, y: 6.15, w: 8, h: 0.4, fontFace: FONT, fontSize: 16, bold: true, color: T.head, margin: 0, isTextBox: true, objectName: 'FX8~float' });
       s.addText('© 2027 Solar PAYG Mauritanie — MDA — Tous droits réservés  ·  Généré le ' + (a.date || ''), { x: 0.7, y: 6.65, w: 11.5, h: 0.3, fontFace: FONT, fontSize: 11, color: T.muted, margin: 0, isTextBox: true, objectName: 'FX9~fade' });
       s.addNotes('Présenter le projet en une phrase : une entreprise qui finance des kits solaires et se fait rembourser par petits paiements mobiles. Annoncer le fil de la soutenance : problème, enquête, marché, prototype, finance, faisabilité, conclusion.');
@@ -473,7 +474,8 @@
         s._g = null;
       }
       if (instLogo) {
-        s.addText([{ text: 'ISCAE', options: { fontSize: 18, bold: true, color: T.head } }, { text: '  ·  Banque et Assurance', options: { fontSize: 18, bold: true, color: T.ac(K.green) } }], { x: 1, y: 6.15, w: W - 2, h: 0.4, fontFace: FONT, align: 'center', margin: 0, isTextBox: true, objectName: 'FX7~float' });
+        s.addText('ISCAE', { x: 2.0, y: 0.82, w: 3, h: 0.5, fontFace: FONT, fontSize: 24, bold: true, color: T.head, charSpacing: 2, margin: 0, valign: 'middle', isTextBox: true, objectName: 'FX7~float' });
+        s.addText('Spécialité : Banque et Assurance', { x: 1, y: 6.15, w: W - 2, h: 0.4, fontFace: FONT, fontSize: 16, bold: true, color: T.ac(K.green), align: 'center', margin: 0, isTextBox: true, objectName: 'FX8~float' });
         s.addShape(pres.ShapeType.ellipse, { x: 0.6, y: 0.5, w: 1.3, h: 1.3, fill: { color: 'FFFFFF' }, line: { color: T.ac(K.gold), width: 2 }, objectName: '!!inst1' });
         s.addImage({ data: instLogo, x: 0.67, y: 0.57, w: 1.16, h: 1.16, rounding: true, objectName: '!!inst2' });
       }
