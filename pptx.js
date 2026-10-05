@@ -215,7 +215,6 @@
     /* =========================== PLAN DE LA SOUTENANCE =========================== */
     {
       const s = slide('Plan de la soutenance', null, 'Annoncer les sept étapes du fil conducteur : chaque diapositive porte le numéro de l’étape à laquelle elle appartient.');
-      TRANS[count - 1] = 'vortex';
       const cols = [K.orangeDark, K.orangeDark, K.blue, K.green, K.blueDark, K.greenDark, K.orange];
       const sub = ['Contexte et problématique', 'Preuve du besoin', 'Estimation de la demande', 'Démonstration de la solution', 'Coûts et revenus', 'Rentabilité et risques', 'Décision et prochaines étapes'];
       D.STORY.forEach((st, i) => {
@@ -450,7 +449,7 @@
 
     /* =========================== 21. MERCI / QUESTIONS =========================== */
     {
-      const s = wrap(pres.addSlide()); count++; TRANS[count - 1] = 'ripple';
+      const s = wrap(pres.addSlide()); count++; TRANS[count - 1] = 'morph';
       s.background = { color: T.bgCover };
       hud(s, W / 2, 3.1, 1.15);
       if (logo) {
@@ -469,7 +468,6 @@
       s.addNotes('Remercier le jury et inviter aux questions. Garder le prototype ouvert pour une démonstration si demandé.');
     }
 
-    TRANS[count - 2] = 'prism'; // la conclusion entre avec une transition distincte
     const raw = await pres.write({ outputType: 'uint8array' });
     let bytes = raw instanceof Uint8Array ? raw : new Uint8Array(raw);
     // Transitions + animations (module pptx-fx.js) ; en cas de problème, la présentation reste valide mais sans animation

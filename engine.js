@@ -24,8 +24,8 @@
     frequency:   /frequence de paiement/,
     duration:    /duree de financement/,
     insurance:   /micro-assurance integree/,
-    monthlyPrice:/montant mensuel maximum/,
-    totalPrice:  /prix total.*acceptable/,
+    monthlyPrice:/montant mensuel maximum|montant mensuel.*(accept|payer|pouvez)|(payer|paiement|verser).*(par mois|mensuel).*(maximum|accept)|(maximum|accept).*(par mois|mensuel)/,
+    totalPrice:  /prix total.*acceptable|prix total.*(maximum|payer)|(maximum|accept).*prix total/,
     income:      /tranche.*revenu mensuel/,
     activity:    /activite principale/,
     profile:     /profil principal/,
@@ -78,8 +78,19 @@
     return [Math.max(0, c - h), Math.min(1, c + h)];
   }
 
-  const bandRange = (key, value) => {
-    const b = BANDS[key] && BANDS[key][value];
+  // Repli : si le code de l'option n'est pas dans BANDS, les bornes sont lues dans le libellé (« 1 000 – 2 000 MRU », « Moins de 1 000 », « Plus de 8 000 »)
+  function bandFromLabel(label) {
+    const t = norm(label).replace(/(\d)[\s\u00a0\u202f.,](?=\d{3}(?!\d))/g, '$1');
+    const nums = (t.match(/\d+(?:[.,]\d+)?/g) || []).map((x) => parseFloat(x.replace(',', '.'))).filter((x) => isFinite(x));
+    if (!nums.length) return null;
+    if (nums.length >= 2) { const a = Math.min(nums[0], nums[1]), b = Math.max(nums[0], nums[1]); return [a, b]; }
+    if (/moins|infer|jusqu|^\s*<|<\s*\d|sous/.test(t)) return [0, nums[0]];
+    if (/plus|super|depass|au-dessus|>|\+|au moins/.test(t)) return [nums[0], null];
+    return null;
+  }
+  const bandRange = (key, value, label) => {
+    let b = BANDS[key] && BANDS[key][value];
+    if (!b && label) b = bandFromLabel(label);
     if (!b) return null;
     return [b[0], b[1] == null ? b[0] * OPEN_BAND_FACTOR : b[1]];
   };
@@ -89,7 +100,7 @@
     if (!dist || !dist.total) return null;
     let acc = 0;
     dist.items.forEach((i) => {
-      const r = bandRange(key, i.value);
+      const r = bandRange(key, i.value, i.label_fr);
       if (!r || !i.count) return;
       const [lo, hi] = r;
       const frac = price <= lo ? 1 : price >= hi ? 0 : (hi - price) / (hi - lo);
@@ -102,7 +113,7 @@
   function priceForCoverage(dist, key, coverage) {
     if (!dist || !dist.total) return null;
     let lo = 0, hi = 0;
-    dist.items.forEach((i) => { const r = bandRange(key, i.value); if (r && i.count) hi = Math.max(hi, r[1]); });
+    dist.items.forEach((i) => { const r = bandRange(key, i.value, i.label_fr); if (r && i.count) hi = Math.max(hi, r[1]); });
     for (let k = 0; k < 60; k++) {
       const mid = (lo + hi) / 2;
       if (shareAtLeast(dist, key, mid) >= coverage) lo = mid; else hi = mid;
@@ -113,7 +124,7 @@
   function meanFromBands(dist, key) {
     if (!dist || !dist.total) return null;
     let acc = 0;
-    dist.items.forEach((i) => { const r = bandRange(key, i.value); if (r && i.count) acc += i.count * (r[0] + r[1]) / 2; });
+    dist.items.forEach((i) => { const r = bandRange(key, i.value, i.label_fr); if (r && i.count) acc += i.count * (r[0] + r[1]) / 2; });
     return Math.round(acc / dist.total);
   }
 
