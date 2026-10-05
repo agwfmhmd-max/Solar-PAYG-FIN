@@ -91,63 +91,67 @@
   }
 
   /* =====================================================================
-   *  PRIMITIVES WORDPROCESSINGML
+   *  CONSTRUCTION DU DOCUMENT WORD
+   *  Le fichier est produit avec la bibliothèque « docx » (dossier vendor/), un standard éprouvé qui génère des documents
+   *  Word propres (styles, numérotation, sections, tableaux, images, sommaire) : le fichier s'ouvre et se MODIFIE sans erreur.
    * ===================================================================== */
-  const NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"';
-  const XML = D.XML;
-  const FONT = '<w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial" w:eastAsia="Arial"/>';
+  const FONT_NAME = 'Arial';
+  function ensureDocx() {
+    if (root.docx) return Promise.resolve();
+    return D.loadScript('vendor/docx.iife.js', 'https://cdn.jsdelivr.net/npm/docx@9.6.1/dist/index.iife.js').then(() => { if (!root.docx) throw new Error('docx'); });
+  }
+  const px = (cm) => Math.round(cm * 37.7953);
 
   function run(text, o) {
-    o = o || {};
-    let pr = FONT;
-    if (o.bold) pr += '<w:b/><w:bCs/>';
-    if (o.italic) pr += '<w:i/><w:iCs/>';
-    if (o.caps) pr += '<w:caps/>';
-    if (o.color) pr += '<w:color w:val="' + o.color + '"/>';
-    if (o.size) pr += '<w:sz w:val="' + o.size + '"/><w:szCs w:val="' + o.size + '"/>';
-    const parts = String(text == null ? '' : text).split('\n');
-    return '<w:r><w:rPr>' + pr + '</w:rPr>' + parts.map((t, i) => (i ? '<w:br/>' : '') + '<w:t xml:space="preserve">' + esc(t) + '</w:t>').join('') + '</w:r>';
+    o = o || {}; const d = root.docx, out = [];
+    String(text == null ? '' : text).split('\n').forEach((seg, i) => {
+      const ro = { text: D.clean(seg), bold: !!o.bold, italics: !!o.italic, allCaps: !!o.caps, font: FONT_NAME };
+      if (o.color) ro.color = o.color; if (o.size) ro.size = o.size; if (i) ro.break = 1;
+      out.push(new d.TextRun(ro));
+    });
+    return out;
   }
   // **gras** dans le texte
   function runs(text, o) {
-    return String(text == null ? '' : text).split(/(\*\*[^*]+\*\*)/).filter(Boolean).map((seg) => (seg.indexOf('**') === 0 ? run(seg.slice(2, -2), Object.assign({}, o, { bold: true })) : run(seg, o))).join('');
+    const out = [];
+    String(text == null ? '' : text).split(/(\*\*[^*]+\*\*)/).filter(Boolean).forEach((seg) => { (seg.indexOf('**') === 0 ? run(seg.slice(2, -2), Object.assign({}, o, { bold: true })) : run(seg, o)).forEach((r) => out.push(r)); });
+    return out;
   }
   function para(inner, o) {
-    o = o || {};
-    let pr = '';
-    if (o.style) pr += '<w:pStyle w:val="' + o.style + '"/>';
-    if (o.keepNext) pr += '<w:keepNext/>';
-    if (o.keepLines) pr += '<w:keepLines/>';
-    if (o.pageBreakBefore) pr += '<w:pageBreakBefore/>';
-    if (o.num) pr += '<w:numPr><w:ilvl w:val="' + (o.lvl || 0) + '"/><w:numId w:val="' + o.num + '"/></w:numPr>';
-    if (o.border) pr += '<w:pBdr><w:left w:val="single" w:sz="24" w:space="8" w:color="' + o.border + '"/></w:pBdr>';
-    if (o.shade) pr += '<w:shd w:val="clear" w:color="auto" w:fill="' + o.shade + '"/>';
-    if (o.spacing) pr += '<w:spacing w:before="' + (o.spacing[0] || 0) + '" w:after="' + (o.spacing[1] || 0) + '"' + (o.line ? ' w:line="' + o.line + '" w:lineRule="auto"' : '') + '/>';
-    if (o.ind) pr += '<w:ind w:left="' + (o.ind[0] || 0) + '" w:right="' + (o.ind[1] || 0) + '"' + (o.ind[2] ? ' w:hanging="' + o.ind[2] + '"' : '') + '/>';
-    if (o.align) pr += '<w:jc w:val="' + o.align + '"/>';
-    if (o.sect) pr += o.sect;
-    return '<w:p>' + (pr ? '<w:pPr>' + pr + '</w:pPr>' : '') + inner + '</w:p>';
+    o = o || {}; const d = root.docx;
+    const opt = { children: Array.isArray(inner) ? inner : (inner ? [inner] : []) };
+    if (o.style) opt.style = o.style;
+    if (o.heading) opt.heading = o.heading;
+    if (o.keepNext) opt.keepNext = true;
+    if (o.keepLines) opt.keepLines = true;
+    if (o.pageBreakBefore) opt.pageBreakBefore = true;
+    if (o.num) opt.numbering = { reference: 'bul', level: o.lvl || 0 };
+    if (o.border) opt.border = { left: { style: d.BorderStyle.SINGLE, size: 24, color: o.border, space: 8 } };
+    if (o.shade) opt.shading = { type: d.ShadingType.CLEAR, fill: o.shade, color: 'auto' };
+    if (o.spacing || o.line) opt.spacing = Object.assign({ before: o.spacing ? (o.spacing[0] || 0) : 0, after: o.spacing ? (o.spacing[1] || 0) : 0 }, o.line ? { line: o.line, lineRule: d.LineRuleType.AUTO } : {});
+    if (o.ind) opt.indent = Object.assign({ left: o.ind[0] || 0, right: o.ind[1] || 0 }, o.ind[2] ? { hanging: o.ind[2] } : {});
+    if (o.align) opt.alignment = o.align;
+    return new d.Paragraph(opt);
   }
-  const isNum = (s) => /^-?[\d\u00A0\s.,]+(\u00A0?(%|MRU))?$/.test(String(s).trim()) && /\d/.test(String(s));
 
-  /* =====================================================================
-   *  CONSTRUCTION DU DOCUMENT
-   * ===================================================================== */
   async function build(ctx) {
+    await ensureDocx();
+    const d = root.docx;
     const a = analyze(ctx), E = a.E, g = a.g, sc = a.sc, res = a.res, ind = a.ind, has = a.has;
     const specs = chartSpecs(a);
     const assets = root.PAYG_ASSETS || {};
-    const body = [], toc = [], media = [];
+    const shots = (ctx.shots && ctx.shots.shots) || {};
+    const shotTheme = (ctx.shots && ctx.shots.theme) || 'dark', shotAt = (ctx.shots && ctx.shots.at) || a.date || '';
+    const toc = [];
+    const sections = []; let cur = [];
+    const body = { push: function () { for (let i = 0; i < arguments.length; i++) cur.push(arguments[i]); } };
     const W_PORTRAIT = 9638, W_LAND = 14570; // largeur utile (twips) A4 portrait / paysage, marges 2 cm
-    let curW = W_PORTRAIT, figN = 0, tabN = 0, bm = 0, imgSeq = 0;
+    let curW = W_PORTRAIT, figN = 0, tabN = 0, bm = 0;
 
     /* --- images --- */
-    function addMedia(m, name) { // m : {bytes,w,h,ext}
-      imgSeq++; const rid = 'rIdImg' + imgSeq; media.push({ rid, name: 'image' + imgSeq + '.' + m.ext, bytes: m.bytes, mime: m.mime }); return { rid, id: imgSeq, w: m.w, h: m.h, name: name || ('Image ' + imgSeq) };
-    }
-    function drawing(im, cm, alt) {
-      const cx = Math.round(cm * 360000), cy = Math.round(cx * im.h / im.w);
-      return '<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="' + cx + '" cy="' + cy + '"/><wp:docPr id="' + im.id + '" name="' + esc(im.name) + '" descr="' + esc(alt || im.name) + '"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="' + im.id + '" name="' + esc(im.name) + '"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="' + im.rid + '"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + cx + '" cy="' + cy + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>';
+    function imgPara(m, cm, alt) {
+      const wpx = px(cm), hpx = Math.round(wpx * m.h / m.w);
+      return new d.Paragraph({ alignment: 'center', keepNext: true, spacing: { before: 100, after: 0 }, children: [new d.ImageRun({ type: m.ext === 'png' ? 'png' : 'jpg', data: m.bytes, transformation: { width: wpx, height: hpx }, altText: { name: alt, title: alt, description: alt } })] });
     }
 
     /* --- blocs --- */
@@ -156,56 +160,54 @@
     const numbered = (arr) => arr.forEach((t, i) => body.push(para(runs((i + 1) + '.  ' + t, { size: 21 }), { align: 'left', ind: [454, 0, 340], spacing: [0, 60], line: 264 })));
     const note = (t, color) => body.push(para(runs(t, { size: 19, color: '334155' }), { shade: color || 'F1F5F9', border: '16803A', ind: [140, 120], spacing: [60, 160], line: 264, align: 'both', keepLines: true }));
     const warn = (t) => note('**À noter.** ' + t, 'FEF3C7');
-    const fil = (i, t) => body.push(para(run('Fil conducteur — étape' + (/\D/.test(String(i)) ? 's ' : ' ') + i + '/7 : ', { size: 18, bold: true, color: '16803A' }) + run(t, { size: 18, italic: true, color: '475569' }), { spacing: [0, 160], border: 'F59E0B', ind: [140, 0], align: 'left' }));
-    const pageBreak = () => body.push('<w:p><w:r><w:br w:type="page"/></w:r></w:p>');
+    const fil = (i, t) => body.push(para([].concat(run('Fil conducteur — étape' + (/\D/.test(String(i)) ? 's ' : ' ') + i + '/7 : ', { size: 18, bold: true, color: '16803A' }), run(t, { size: 18, italic: true, color: '475569' })), { spacing: [0, 160], border: 'F59E0B', ind: [140, 0], align: 'left' }));
     function heading(level, text, opts) {
-      const id = 'Toc' + (++bm); toc.push({ level, text, id });
-      const inner = '<w:bookmarkStart w:id="' + bm + '" w:name="_' + id + '"/>' + run(text, { bold: true }) + '<w:bookmarkEnd w:id="' + bm + '"/>';
-      body.push(para(inner, Object.assign({ style: 'Heading' + level }, opts || {})));
+      const id = '_Toc' + (++bm); toc.push({ level, text, id });
+      body.push(para([new d.Bookmark({ id, children: run(text, { bold: true }) })], Object.assign({ heading: d.HeadingLevel['HEADING_' + level] }, opts || {})));
     }
     const H1 = (t, o) => heading(1, t, Object.assign({ pageBreakBefore: true }, o || {}));
     const H2 = (t) => heading(2, t);
-    const H3 = (t) => heading(3, t);
     function caption(kind, text) { const n = kind === 'Figure' ? ++figN : ++tabN; body.push(para(run(kind + ' ' + n + ' — ' + text, { size: 18, italic: true, color: '64748B' }), { style: 'Caption', align: kind === 'Figure' ? 'center' : 'left', keepNext: kind === 'Tableau', spacing: [kind === 'Figure' ? 40 : 120, kind === 'Figure' ? 200 : 60] })); }
+    const isNum = (s) => /^-?[\d\u00A0\s.,]+(\u00A0?(%|MRU))?$/.test(String(s).trim()) && /\d/.test(String(s));
     function table(rows, o) {
       o = o || {}; if (!rows || !rows.length) return;
       const fs = o.fs || 18, cols = Math.max.apply(null, rows.map((r) => r.length)), totalW = o.width || curW;
       let wts = o.widths;
       if (!wts) { wts = []; for (let c = 0; c < cols; c++) { let m = 0; rows.forEach((r, i) => { const len = D.clean(r[c]).length; const eff = i === 0 ? Math.min(len, 20) * 0.8 : Math.min(len, 60); if (eff > m) m = eff; }); wts.push(Math.max(7, m)); } }
-      const sum = wts.reduce((x, y) => x + y, 0); let w = wts.map((x) => Math.max(650, Math.floor((x / sum) * totalW))); w[w.length - 1] += totalW - w.reduce((x, y) => x + y, 0);
-      let x = '<w:tbl><w:tblPr><w:tblW w:w="' + totalW + '" w:type="dxa"/><w:tblBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="94A3B8"/><w:left w:val="single" w:sz="4" w:space="0" w:color="94A3B8"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="94A3B8"/><w:right w:val="single" w:sz="4" w:space="0" w:color="94A3B8"/><w:insideH w:val="single" w:sz="4" w:space="0" w:color="CBD5E1"/><w:insideV w:val="single" w:sz="4" w:space="0" w:color="CBD5E1"/></w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="45" w:type="dxa"/><w:left w:w="85" w:type="dxa"/><w:bottom w:w="45" w:type="dxa"/><w:right w:w="85" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>' + w.map((n) => '<w:gridCol w:w="' + n + '"/>').join('') + '</w:tblGrid>';
+      const sum = wts.reduce((x, y) => x + y, 0); const w = wts.map((x) => Math.max(650, Math.floor((x / sum) * totalW))); w[w.length - 1] += totalW - w.reduce((x, y) => x + y, 0);
       const boldRows = o.boldRows || [];
       // colonne « numérique » : toutes les cellules (hors en-tête) commencent par un chiffre, un signe ou un tiret
       const numCol = []; for (let c = 1; c < cols; c++) numCol[c] = rows.length > 1 && rows.slice(1).every((r) => /^\s*(?:[-−>]?\s*\d|—|n\/d|impossible)/.test(String(r[c] == null ? '' : r[c])));
-      rows.forEach((r, i) => {
+      const bd = (col) => ({ style: d.BorderStyle.SINGLE, size: 4, color: col });
+      const trs = rows.map((r, i) => {
         const head = i === 0, bold = head || boldRows.indexOf(i) >= 0 || (o.boldLast && i === rows.length - 1);
-        x += '<w:tr><w:trPr><w:cantSplit/>' + (head ? '<w:tblHeader/>' : '') + '</w:trPr>';
+        const cells = [];
         for (let c = 0; c < cols; c++) {
           const val = r[c] == null ? '' : String(r[c]); const fill = head ? '14532D' : (bold ? 'DCFCE7' : (i % 2 === 0 ? 'F1F5F9' : 'FFFFFF'));
           const al = (o.align && o.align[c]) || (!head && c > 0 && numCol[c] ? 'right' : 'left');
-          x += '<w:tc><w:tcPr><w:tcW w:w="' + w[c] + '" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="' + fill + '"/>' + (head ? '<w:vAlign w:val="center"/>' : '') + '</w:tcPr>' + para(runs(val, { size: head ? fs - 1 : fs, bold: bold, color: head ? 'FFFFFF' : '0F172A' }), { align: head ? 'center' : al, line: 252 }) + '</w:tc>';
+          cells.push(new d.TableCell({ width: { size: w[c], type: d.WidthType.DXA }, shading: { type: d.ShadingType.CLEAR, fill, color: 'auto' }, margins: { top: 45, bottom: 45, left: 85, right: 85 }, verticalAlign: head ? d.VerticalAlign.CENTER : undefined, children: [para(runs(val, { size: head ? fs - 1 : fs, bold, color: head ? 'FFFFFF' : '0F172A' }), { align: head ? 'center' : al, line: 252 })] }));
         }
-        x += '</w:tr>';
+        return new d.TableRow({ cantSplit: true, tableHeader: head, children: cells });
       });
-      body.push(x + '</w:tbl>'); body.push(para('', { spacing: [0, 100] }));
+      body.push(new d.Table({ width: { size: totalW, type: d.WidthType.DXA }, columnWidths: w, layout: d.TableLayoutType.FIXED, rows: trs, borders: { top: bd('94A3B8'), bottom: bd('94A3B8'), left: bd('94A3B8'), right: bd('94A3B8'), insideHorizontal: bd('CBD5E1'), insideVertical: bd('CBD5E1') } }));
+      body.push(para([], { spacing: [0, 100] }));
     }
     // Figure à partir d'une spécification SVG
     async function figure(spec, cap, cm) {
-      try { const png = await D.render(spec); const im = addMedia(png, cap); body.push(para(drawing(im, cm || Math.min(16.4, curW / 567), cap), { align: 'center', keepNext: true, spacing: [100, 0] })); caption('Figure', cap); }
+      try { const png = await D.render(spec); body.push(imgPara(png, cm || Math.min(16.4, curW / 567), cap)); caption('Figure', cap); }
       catch (e) { console.warn('[report] figure ignorée :', cap, e); }
     }
+    // Capture du prototype (en direct, au thème de la plateforme au moment de l'export ; sinon image de secours du même thème)
     async function shot(key, cap, cm) {
-      const uri = assets.shots && assets.shots[key]; if (!uri) return;
-      const bytes = D.dataUriToBytes(uri), sz = D.imageSize(bytes), im = addMedia(Object.assign({ bytes }, sz), cap);
-      body.push(para(drawing(im, cm || 15.5, cap), { align: 'center', keepNext: true, spacing: [100, 0] })); caption('Figure', cap);
+      const m = shots[key === 'iot_locked' ? 'iot' : key]; if (!m) return;
+      body.push(imgPara(m, cm || 15.5, cap));
+      caption('Figure', cap + ' — thème ' + (shotTheme === 'light' ? 'clair' : 'sombre') + ', capture du ' + shotAt);
     }
-    const sectBreak = (landscape, restart) => {
-      const sz = landscape ? '<w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/>' : '<w:pgSz w:w="11906" w:h="16838"/>';
-      body.push(para('', { sect: '<w:sectPr><w:headerReference w:type="default" r:id="rIdHdr"/><w:footerReference w:type="default" r:id="rIdFtr"/><w:type w:val="nextPage"/>' + sz + '<w:pgMar w:top="1300" w:right="1134" w:bottom="1134" w:left="1134" w:header="560" w:footer="480" w:gutter="0"/>' + (restart ? '<w:pgNumType w:start="1"/>' : '') + '</w:sectPr>' }));
-    };
+    const closeSection = (landscape, restart) => { sections.push({ landscape: !!landscape, restart: !!restart, children: cur, cover: false }); cur = []; };
+    const sectBreak = closeSection;
     const L = (v) => noEmoji(v);
 
-    /* ---------- chiffres de référence ---------- */
+/* ---------- chiffres de référence ---------- */
     const cen = res.central, pru = res.prudent, dyn = res.dynamique;
     const nTxt = has ? num(a.n) + ' répondant' + (a.n > 1 ? 's' : '') : null;
     const modeLbl = (d) => { if (!d) return null; const m = d.items.reduce((b, i) => (i.count > (b ? b.count : -1) ? i : b), null); return m && m.count ? L(m.label_fr) + ' (' + num(m.pct, 1) + ' %)' : null; };
@@ -216,25 +218,25 @@
 
     /* =================== PAGE DE GARDE =================== */
     let logo = null;
-    try { if (assets.logoSvg) { const lp = await D.svgToPngTransparent(assets.logoSvg, 1092, 1092, 0.5); logo = addMedia(lp, 'Logo Solar PAYG Mauritanie'); } } catch (e) { console.warn('[report] logo', e); }
-    if (logo) body.push(para(drawing(logo, 4.6, 'Logo Solar PAYG Mauritanie'), { align: 'center', spacing: [600, 200] }));
+    try { if (assets.logoSvg) logo = await D.svgToPngTransparent(assets.logoSvg, 1092, 1092, 0.5); } catch (e) { console.warn('[report] logo', e); }
+    if (logo) { const wpx = px(4.6); body.push(new d.Paragraph({ alignment: 'center', spacing: { before: 600, after: 200 }, children: [new d.ImageRun({ type: 'png', data: logo.bytes, transformation: { width: wpx, height: wpx }, altText: { name: 'Logo Solar PAYG Mauritanie', title: 'Logo', description: 'Logo Solar PAYG Mauritanie' } })] })); }
     body.push(para(run(DEPT.toUpperCase(), { size: 22, bold: true, color: '16803A' }), { align: 'center', spacing: [logo ? 0 : 1800, 120] }));
     body.push(para(run('Rapport de projet — Prototype FinTech & Énergie', { size: 20, color: '64748B' }), { align: 'center', spacing: [0, 700] }));
-    body.push('<w:tbl><w:tblPr><w:tblW w:w="9638" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="280" w:type="dxa"/><w:left w:w="300" w:type="dxa"/><w:bottom w:w="280" w:type="dxa"/><w:right w:w="300" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid><w:gridCol w:w="9638"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w="9638" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="14532D"/></w:tcPr>' +
-      para(run('ÉTUDE DE FAISABILITÉ', { size: 24, bold: true, color: 'FBBF24' }), { align: 'center', spacing: [0, 120] }) +
-      para(run('d’une entreprise de financement PAYG de l’énergie solaire en Mauritanie', { size: 38, bold: true, color: 'FFFFFF' }), { align: 'center', spacing: [0, 120], line: 300 }) +
-      para(run('Scoring de crédit · Micro-assurance · Paiement mobile · Verrouillage à distance (IoT)', { size: 20, color: 'DCFCE7' }), { align: 'center' }) + '</w:tc></w:tr></w:tbl>');
-    body.push(para('', { spacing: [500, 0] }));
+    body.push(new d.Table({ width: { size: 9638, type: d.WidthType.DXA }, columnWidths: [9638], layout: d.TableLayoutType.FIXED, borders: { top: { style: d.BorderStyle.NONE, size: 0, color: 'FFFFFF' }, bottom: { style: d.BorderStyle.NONE, size: 0, color: 'FFFFFF' }, left: { style: d.BorderStyle.NONE, size: 0, color: 'FFFFFF' }, right: { style: d.BorderStyle.NONE, size: 0, color: 'FFFFFF' }, insideHorizontal: { style: d.BorderStyle.NONE, size: 0, color: 'FFFFFF' }, insideVertical: { style: d.BorderStyle.NONE, size: 0, color: 'FFFFFF' } }, rows: [new d.TableRow({ children: [new d.TableCell({ width: { size: 9638, type: d.WidthType.DXA }, shading: { type: d.ShadingType.CLEAR, fill: '14532D', color: 'auto' }, margins: { top: 280, bottom: 280, left: 300, right: 300 }, children: [
+      para(run('ÉTUDE DE FAISABILITÉ', { size: 24, bold: true, color: 'FBBF24' }), { align: 'center', spacing: [0, 120] }),
+      para(run('d’une entreprise de financement PAYG de l’énergie solaire en Mauritanie', { size: 38, bold: true, color: 'FFFFFF' }), { align: 'center', spacing: [0, 120], line: 300 }),
+      para(run('Scoring de crédit · Micro-assurance · Paiement mobile · Verrouillage à distance (IoT)', { size: 20, color: 'DCFCE7' }), { align: 'center' })] })] })] }));
+    body.push(para([], { spacing: [500, 0] }));
     body.push(para(run('Solar PAYG Mauritanie 2027', { size: 28, bold: true, color: '0F172A' }), { align: 'center', spacing: [0, 160] }));
     const teamTxt = (a.team && a.team.length ? a.team : []).join('  ·  ');
-    if (teamTxt) body.push(para(run('Équipe du projet', { size: 18, color: '64748B', caps: true }), { align: 'center', spacing: [300, 40] }) + '' + para(run(teamTxt, { size: 24, bold: true, color: '0F172A' }), { align: 'center', spacing: [0, 300] }));
+    if (teamTxt) { body.push(para(run('Équipe du projet', { size: 18, color: '64748B', caps: true }), { align: 'center', spacing: [300, 40] })); body.push(para(run(teamTxt, { size: 24, bold: true, color: '0F172A' }), { align: 'center', spacing: [0, 300] })); }
     body.push(para(run('Document généré le ' + (a.date || '') + (a.supervisor ? ' par ' + a.supervisor : ''), { size: 18, color: '64748B' }), { align: 'center', spacing: [400, 40] }));
     body.push(para(run('Les chiffres de ce rapport proviennent de la plateforme Les Enquêtes et du modèle financier du prototype.', { size: 17, italic: true, color: '94A3B8' }), { align: 'center' }));
-    // fin de section 1 (page de garde, sans en-tête ni pied de page)
-    body.push(para('', { sect: '<w:sectPr><w:headerReference w:type="default" r:id="rIdHdrEmpty"/><w:footerReference w:type="default" r:id="rIdFtrEmpty"/><w:type w:val="nextPage"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1000" w:right="1134" w:bottom="1000" w:left="1134" w:header="560" w:footer="480" w:gutter="0"/></w:sectPr>' }));
+    // fin de la section 1 : la page de garde n'a ni en-tête ni pied de page
+    sections.push({ cover: true, children: cur }); cur = [];
 
-    /* =================== SOMMAIRE (placeholder, rempli à la fin) =================== */
-    const tocIndex = body.length; body.push('');
+    /* =================== SOMMAIRE (rempli à la fin) =================== */
+    const tocSlot = { slot: true }; body.push(tocSlot);
 
     /* =================== RÉSUMÉ EXÉCUTIF =================== */
     H1('Résumé exécutif');
@@ -642,9 +644,10 @@
     H2('Annexe C — Captures du prototype');
     await shot('scoring', 'Module 1 — Scoring de crédit (Mauri-Score)', 15);
     await shot('pricing', 'Module 2 — Tarification et assurance', 15);
-    await shot('iot_locked', 'Module 3 — Équipement verrouillé (échéance échue)', 15);
-    await shot('iot_unlocked', 'Module 3 — Équipement déverrouillé après paiement mobile (simulation)', 15);
+    await shot('iot_locked', 'Module 3 — Simulateur IoT et paiement mobile', 15);
+    if (shots.iot_unlocked) await shot('iot_unlocked', 'Module 3 — Équipement déverrouillé après paiement mobile (simulation de référence)', 15);
     await shot('financials', 'Module 4 — Modèle financier dynamique', 15);
+    await shot('market', 'Module 5 — Étude de marché (résultats de l’enquête en direct)', 15);
     await shot('assumptions', 'Registre des hypothèses du modèle', 15);
     // section portrait terminée -> annexe D en paysage (la numérotation des pages démarre à 1 après la page de garde)
     sectBreak(false, true);
@@ -673,51 +676,65 @@
     await figure(specs.sens, 'Sensibilité de la VAN', 16.4);
 
     /* ---------- SOMMAIRE ---------- */
-    const tocXml = [];
-    tocXml.push(para(run('Sommaire', { bold: true, size: 36, color: '14532D' }), { spacing: [0, 240], keepNext: true }));
     const entries = toc.filter((t) => t.level <= 2);
-    entries.forEach((t, i) => {
-      const first = i === 0, last = i === entries.length - 1;
-      const pre = first ? '<w:r><w:fldChar w:fldCharType="begin" w:dirty="true"/></w:r><w:r><w:instrText xml:space="preserve"> TOC \\o "1-2" \\h \\z \\u </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r>' : '';
-      const post = last ? '<w:r><w:fldChar w:fldCharType="end"/></w:r>' : '';
-      tocXml.push('<w:p><w:pPr><w:pStyle w:val="TOC' + t.level + '"/><w:tabs><w:tab w:val="right" w:leader="dot" w:pos="9628"/></w:tabs></w:pPr>' + pre + '<w:hyperlink w:anchor="_' + t.id + '" w:history="1">' + run(t.text, { size: t.level === 1 ? 21 : 19, bold: t.level === 1 }) + '</w:hyperlink>' + post + '</w:p>');
-    });
-    tocXml.push('<w:p><w:r><w:br w:type="page"/></w:r></w:p>');
-    body[tocIndex] = tocXml.join('');
+    const tocItems = [
+      para(run('Sommaire', { bold: true, size: 36, color: '14532D' }), { spacing: [0, 80], keepNext: true }),
+      para(run('Clic sur une ligne pour atteindre la section. Pour afficher les numéros de page : clic droit sur le sommaire › « Mettre à jour les champs ».', { size: 16, italic: true, color: '64748B' }), { spacing: [0, 200] }),
+      new d.TableOfContents('Sommaire', { hyperlink: true, headingStyleRange: '1-2', beginDirty: false, cachedEntries: entries.map((e) => ({ title: e.text, level: e.level, href: e.id })) })
+    ];
+    sections.forEach((s) => { const i = s.children.indexOf(tocSlot); if (i >= 0) s.children.splice.apply(s.children, [i, 1].concat(tocItems)); });
+    if (cur.length) sections.push({ landscape: false, restart: false, children: cur });
 
-    /* ---------- Assemblage du paquet .docx ---------- */
-    const finalSect = '<w:sectPr><w:headerReference w:type="default" r:id="rIdHdr"/><w:footerReference w:type="default" r:id="rIdFtr"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1300" w:right="1134" w:bottom="1134" w:left="1134" w:header="560" w:footer="480" w:gutter="0"/></w:sectPr>';
-    const documentXml = XML + '<w:document ' + NS + '><w:body>' + body.join('') + finalSect + '</w:body></w:document>';
-    const stylesXml = XML + '<w:styles ' + NS + '><w:docDefaults><w:rPrDefault><w:rPr>' + FONT + '<w:sz w:val="21"/><w:szCs w:val="21"/><w:lang w:val="fr-FR" w:eastAsia="fr-FR" w:bidi="ar-SA"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="120" w:line="264" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>' +
-      '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>' +
-      '<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:keepLines/><w:pBdr><w:bottom w:val="single" w:sz="12" w:space="6" w:color="D4AF37"/></w:pBdr><w:spacing w:before="0" w:after="260"/><w:outlineLvl w:val="0"/></w:pPr><w:rPr><w:b/><w:bCs/><w:color w:val="14532D"/><w:sz w:val="36"/><w:szCs w:val="36"/></w:rPr></w:style>' +
-      '<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:keepLines/><w:spacing w:before="320" w:after="120"/><w:outlineLvl w:val="1"/></w:pPr><w:rPr><w:b/><w:bCs/><w:color w:val="16803A"/><w:sz w:val="27"/><w:szCs w:val="27"/></w:rPr></w:style>' +
-      '<w:style w:type="paragraph" w:styleId="Heading3"><w:name w:val="heading 3"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="200" w:after="80"/><w:outlineLvl w:val="2"/></w:pPr><w:rPr><w:b/><w:bCs/><w:color w:val="334155"/><w:sz w:val="23"/><w:szCs w:val="23"/></w:rPr></w:style>' +
-      '<w:style w:type="paragraph" w:styleId="Caption"><w:name w:val="caption"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:rPr><w:i/><w:iCs/><w:color w:val="64748B"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:style>' +
-      '<w:style w:type="paragraph" w:styleId="TOC1"><w:name w:val="toc 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="39"/><w:pPr><w:spacing w:before="120" w:after="40"/></w:pPr></w:style>' +
-      '<w:style w:type="paragraph" w:styleId="TOC2"><w:name w:val="toc 2"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="39"/><w:pPr><w:spacing w:before="0" w:after="20"/><w:ind w:left="340"/></w:pPr></w:style>' +
-      '<w:style w:type="table" w:default="1" w:styleId="TableNormal"><w:name w:val="Normal Table"/><w:uiPriority w:val="99"/><w:semiHidden/><w:tblPr><w:tblInd w:w="0" w:type="dxa"/><w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:left w:w="108" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar></w:tblPr></w:style></w:styles>';
-    const numberingXml = XML + '<w:numbering ' + NS + '><w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="hybridMultilevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="567" w:hanging="283"/></w:pPr><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:color w:val="16803A"/></w:rPr></w:lvl></w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num></w:numbering>';
-    const settingsXml = XML + '<w:settings ' + NS + '><w:zoom w:percent="100"/><w:defaultTabStop w:val="708"/><w:characterSpacingControl w:val="doNotCompress"/><w:compat><w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/></w:compat></w:settings>';
-    const hdr = (inner) => XML + '<w:hdr ' + NS + '>' + inner + '</w:hdr>';
-    const ftr = (inner) => XML + '<w:ftr ' + NS + '>' + inner + '</w:ftr>';
-    const hdrXml = hdr(para(run('Solar PAYG Mauritanie — Étude de faisabilité', { size: 16, color: '64748B' }), { align: 'left', border: null, spacing: [0, 0] }).replace('<w:pPr>', '<w:pPr><w:pBdr><w:bottom w:val="single" w:sz="6" w:space="4" w:color="D4AF37"/></w:pBdr>'));
-    const fld = (ins) => '<w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> ' + ins + ' </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r>' + run('1', { size: 16, color: '64748B' }) + '<w:r><w:fldChar w:fldCharType="end"/></w:r>';
-    const ftrXml = ftr(para(run('© 2027 Solar PAYG Mauritanie — MDA — Tous droits réservés  |  ' + DEPT + '  |  Page ', { size: 16, color: '64748B' }) + fld('PAGE'), { align: 'center' }));
-    const emptyHdr = hdr('<w:p/>'), emptyFtr = ftr('<w:p/>');
-    const mediaCT = [...new Set(media.map((m) => m.name.split('.').pop()))].map((e) => '<Default Extension="' + e + '" ContentType="' + (e === 'png' ? 'image/png' : 'image/jpeg') + '"/>').join('');
-    const files = [
-      { name: '[Content_Types].xml', data: XML + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' + mediaCT + '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/><Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/><Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/><Override PartName="/word/header2.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/><Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/><Override PartName="/word/footer2.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/></Types>' },
-      { name: '_rels/.rels', data: XML + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/></Relationships>' },
-      { name: 'word/_rels/document.xml.rels', data: XML + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdSty" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rIdNum" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/><Relationship Id="rIdSet" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/><Relationship Id="rIdHdr" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/><Relationship Id="rIdFtr" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/><Relationship Id="rIdHdrEmpty" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header2.xml"/><Relationship Id="rIdFtrEmpty" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer2.xml"/>' + media.map((m) => '<Relationship Id="' + m.rid + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/' + m.name + '"/>').join('') + '</Relationships>' },
-      { name: 'word/document.xml', data: documentXml }, { name: 'word/styles.xml', data: stylesXml }, { name: 'word/numbering.xml', data: numberingXml }, { name: 'word/settings.xml', data: settingsXml },
-      { name: 'word/header1.xml', data: hdrXml }, { name: 'word/footer1.xml', data: ftrXml }, { name: 'word/header2.xml', data: emptyHdr }, { name: 'word/footer2.xml', data: emptyFtr },
-      { name: 'docProps/core.xml', data: XML + '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>Étude de faisabilité — Solar PAYG Mauritanie</dc:title><dc:creator>Solar PAYG Mauritanie</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">' + new Date().toISOString().replace(/\.\d+Z$/, 'Z') + '</dcterms:created></cp:coreProperties>' },
-      { name: 'docProps/app.xml', data: XML + '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>Solar PAYG Mauritanie</Application></Properties>' }
-    ].concat(media.map((m) => ({ name: 'word/media/' + m.name, data: m.bytes })));
-    return D.zip(files);
+    /* ---------- Assemblage ---------- */
+    const mk = (extra) => ({ top: 1300, right: 1134, bottom: 1134, left: 1134, header: 560, footer: 480 });
+    const hdrP = () => new d.Header({ children: [new d.Paragraph({ alignment: 'left', border: { bottom: { style: d.BorderStyle.SINGLE, size: 6, color: 'D4AF37', space: 4 } }, children: run('Solar PAYG Mauritanie — Étude de faisabilité', { size: 16, color: '64748B' }) })] });
+    const ftrP = () => new d.Footer({ children: [new d.Paragraph({ alignment: 'center', children: [].concat(run('© 2027 Solar PAYG Mauritanie — MDA — Tous droits réservés  |  ' + DEPT + '  |  Page ', { size: 16, color: '64748B' }), [new d.TextRun({ children: [d.PageNumber.CURRENT], size: 16, color: '64748B', font: FONT_NAME })]) })] });
+    let mainSeen = false;
+    const docSections = sections.map((s) => {
+      if (s.cover) return { properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 1000, right: 1134, bottom: 1000, left: 1134, header: 560, footer: 480 } } }, children: s.children };
+      const pg = { size: { width: 11906, height: 16838, orientation: s.landscape ? d.PageOrientation.LANDSCAPE : d.PageOrientation.PORTRAIT }, margin: mk() };
+      if (!mainSeen) { pg.pageNumbers = { start: 1 }; mainSeen = true; } // la numérotation démarre à 1 après la page de garde
+      return { properties: { page: pg }, headers: { default: hdrP() }, footers: { default: ftrP() }, children: s.children };
+    });
+    const para0 = { spacing: { after: 120, line: 264, lineRule: d.LineRuleType.AUTO } };
+    const ps = (id, name, size, color, extra, next) => Object.assign({ id, name, basedOn: 'Normal', next: next || 'Normal', quickFormat: true, run: { font: FONT_NAME, bold: true, size, color } }, extra || {});
+    const doc = new d.Document({
+      creator: 'Solar PAYG Mauritanie', title: 'Étude de faisabilité — Solar PAYG Mauritanie', description: 'Rapport de projet — étude de faisabilité d’une entreprise de financement PAYG de l’énergie solaire en Mauritanie',
+      styles: {
+        // Les styles Titre 1-3 REMPLACENT ceux de la bibliothèque (sinon l'identifiant du style serait déclaré deux fois)
+        default: {
+          document: { run: { font: FONT_NAME, size: 21 }, paragraph: para0 },
+          heading1: { run: { font: FONT_NAME, bold: true, size: 36, color: '14532D' }, paragraph: { keepNext: true, keepLines: true, spacing: { before: 0, after: 260 }, border: { bottom: { style: d.BorderStyle.SINGLE, size: 12, color: 'D4AF37', space: 6 } } } },
+          heading2: { run: { font: FONT_NAME, bold: true, size: 27, color: '16803A' }, paragraph: { keepNext: true, keepLines: true, spacing: { before: 320, after: 120 } } },
+          heading3: { run: { font: FONT_NAME, bold: true, size: 23, color: '334155' }, paragraph: { keepNext: true, spacing: { before: 200, after: 80 } } }
+        },
+        paragraphStyles: [
+          { id: 'Caption', name: 'caption', basedOn: 'Normal', next: 'Normal', quickFormat: true, run: { font: FONT_NAME, italics: true, size: 18, color: '64748B' } },
+          { id: 'TOC1', name: 'toc 1', basedOn: 'Normal', next: 'Normal', run: { font: FONT_NAME, bold: true, size: 21 }, paragraph: { spacing: { before: 120, after: 40 } } },
+          { id: 'TOC2', name: 'toc 2', basedOn: 'Normal', next: 'Normal', run: { font: FONT_NAME, size: 19 }, paragraph: { spacing: { before: 0, after: 20 }, indent: { left: 340 } } }
+        ]
+      },
+      numbering: { config: [{ reference: 'bul', levels: [{ level: 0, format: d.LevelFormat.BULLET, text: '•', alignment: 'left', style: { paragraph: { indent: { left: 567, hanging: 283 } }, run: { color: '16803A', font: FONT_NAME } } }] }] },
+      sections: docSections
+    });
+    return d.Packer.toBlob(doc);
   }
 
-  const API = { build, analyze, chartSpecs, SC, DEPT, MIME: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' };
+  /* Secours : version simple (tableaux uniquement), également produite avec la bibliothèque docx */
+  async function buildTables(sheets, opts) {
+    await ensureDocx(); const d = root.docx; opts = opts || {};
+    const kids = [new d.Paragraph({ children: [new d.TextRun({ text: opts.title || 'Étude de faisabilité — Solar PAYG Mauritanie', bold: true, size: 32, font: FONT_NAME, color: '14532D' })], spacing: { after: 120 } }), new d.Paragraph({ children: [new d.TextRun({ text: DEPT, bold: true, size: 20, font: FONT_NAME, color: '047857' })], spacing: { after: 240 } })];
+    Object.keys(sheets).forEach((n) => {
+      kids.push(new d.Paragraph({ heading: d.HeadingLevel.HEADING_2, children: [new d.TextRun({ text: n.replace(/_/g, ' '), bold: true, size: 24, font: FONT_NAME })], spacing: { before: 240, after: 80 } }));
+      const rows = sheets[n]; if (!rows || !rows.length) return;
+      const cols = Math.max.apply(null, rows.map((r) => r.length)), w = Math.floor(14570 / cols);
+      kids.push(new d.Table({ width: { size: w * cols, type: d.WidthType.DXA }, columnWidths: new Array(cols).fill(w), rows: rows.map((r, i) => new d.TableRow({ tableHeader: i === 0, cantSplit: true, children: Array.from({ length: cols }, (_, c) => new d.TableCell({ width: { size: w, type: d.WidthType.DXA }, shading: i === 0 ? { type: d.ShadingType.CLEAR, fill: '14532D', color: 'auto' } : undefined, children: [new d.Paragraph({ children: [new d.TextRun({ text: D.clean(r[c] == null ? '' : r[c]), size: 15, bold: i === 0, color: i === 0 ? 'FFFFFF' : '0F172A', font: FONT_NAME })] })] })) })) }));
+      kids.push(new d.Paragraph({ children: [] }));
+    });
+    const doc = new d.Document({ creator: 'Solar PAYG Mauritanie', title: opts.title || 'Étude de faisabilité', sections: [{ properties: { page: { size: { width: 11906, height: 16838, orientation: d.PageOrientation.LANDSCAPE }, margin: { top: 720, right: 720, bottom: 720, left: 720 } } }, children: kids }] });
+    return d.Packer.toBlob(doc);
+  }
+
+  const API = { build, buildTables, analyze, chartSpecs, SC, DEPT, MIME: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.PaygReport = API;
 })(typeof window !== 'undefined' ? window : globalThis);
