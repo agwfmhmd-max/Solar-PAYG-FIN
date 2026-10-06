@@ -217,29 +217,36 @@
     /* =================== PAGE DE GARDE =================== */
     let logo = null;
     try { if (assets.logoSvg) { const lp = await D.svgToPngTransparent(assets.logoSvg, 1092, 1092, 0.5); logo = addMedia(lp, 'Logo Solar PAYG Mauritanie'); } } catch (e) { console.warn('[report] logo', e); }
-    // Identité de l'institut : logo ISCAE + nom + spécialité (en tête de la page de garde)
+    // Page de garde (modèle « mémoire de fin d'études ») : institut, logo ISCAE, filet, intitulé, thème encadré, logo du projet, auteurs, encadrant (à compléter), année
+    const rule = (c, sz, after) => '<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="' + sz + '" w:space="1" w:color="' + c + '"/></w:pBdr><w:spacing w:before="0" w:after="' + after + '"/></w:pPr></w:p>';
+    const cv = (t, o, sp, al) => para(run(t, o), { align: al || 'center', spacing: sp });
+    body.push(cv('Institut Supérieur de Comptabilité et d’Administration des Entreprises', { size: 26, bold: true, color: '0F172A' }, [200, 60]));
+    body.push(cv('Nouakchott — Mauritanie', { size: 22, italic: true, color: '475569' }, [0, 160]));
     if (assets.instLogo) {
       try { const ub = D.dataUriToBytes(assets.instLogo), us = D.imageSize(ub), il = addMedia(Object.assign({ bytes: ub }, us), 'Logo ISCAE');
-        body.push(para(drawing(il, 3.4, 'Logo ISCAE'), { align: 'center', spacing: [0, 60] }));
+        body.push(para(drawing(il, 4.2, 'Logo ISCAE'), { align: 'center', spacing: [0, 120] }));
       } catch (e) { console.warn('[report] logo ISCAE', e); }
     }
-    body.push(para(run('ISCAE', { size: 44, bold: true, color: '0F172A' }), { align: 'center', spacing: [0, 120] }));
-    if (logo) body.push(para(drawing(logo, 3.6, 'Logo Solar PAYG Mauritanie'), { align: 'center', spacing: [200, 120] }));
-    body.push(para(run(DEPT.toUpperCase(), { size: 22, bold: true, color: '16803A' }), { align: 'center', spacing: [logo ? 0 : 600, 120] }));
-    body.push(para(run('Rapport de projet — Prototype FinTech & Énergie', { size: 20, color: '64748B' }), { align: 'center', spacing: [0, 700] }));
-    body.push('<w:tbl><w:tblPr><w:tblW w:w="9638" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="280" w:type="dxa"/><w:left w:w="300" w:type="dxa"/><w:bottom w:w="280" w:type="dxa"/><w:right w:w="300" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid><w:gridCol w:w="9638"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w="9638" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="14532D"/></w:tcPr>' +
-      para(run('ÉTUDE DE FAISABILITÉ', { size: 24, bold: true, color: 'FBBF24' }), { align: 'center', spacing: [0, 120] }) +
-      para(run('d’une entreprise de financement PAYG de l’énergie solaire en Mauritanie', { size: 38, bold: true, color: 'FFFFFF' }), { align: 'center', spacing: [0, 120], line: 300 }) +
-      para(run('Scoring de crédit · Micro-assurance · Paiement mobile · Verrouillage à distance (IoT)', { size: 20, color: 'DCFCE7' }), { align: 'center' }) + '</w:tc></w:tr></w:tbl>');
-    body.push(para('', { spacing: [400, 0] }));
-    body.push(para(run('Spécialité : ', { size: 24, color: '64748B' }) + run('Banque et Assurance', { size: 28, bold: true, color: '16803A' }), { align: 'center', spacing: [0, 160] }));
-    body.push(para(run('Solar PAYG Mauritanie 2027', { size: 28, bold: true, color: '0F172A' }), { align: 'center', spacing: [0, 160] }));
-    const teamTxt = (a.team && a.team.length ? a.team : []).join('  ·  ');
-    if (teamTxt) body.push(para(run('Équipe du projet', { size: 18, color: '64748B', caps: true }), { align: 'center', spacing: [300, 40] }) + '' + para(run(teamTxt, { size: 24, bold: true, color: '0F172A' }), { align: 'center', spacing: [0, 300] }));
-    body.push(para(run('Document généré le ' + (a.date || '') + (a.supervisor ? ' par ' + a.supervisor : ''), { size: 18, color: '64748B' }), { align: 'center', spacing: [400, 40] }));
-    body.push(para(run('Les chiffres de ce rapport proviennent de la plateforme Les Enquêtes et du modèle financier du prototype.', { size: 17, italic: true, color: '94A3B8' }), { align: 'center' }));
+    body.push(rule('16803A', 18, 240));
+    body.push(cv('PROJET DE FIN D’ÉTUDES', { size: 36, bold: true, color: '0F172A' }, [60, 120]));
+    body.push(cv('Pour l’obtention de :', { size: 22, color: '475569' }, [0, 100]));
+    body.push(cv('Spécialité : Banque et Assurance', { size: 28, bold: true, color: '16803A' }, [0, 260]));
+    body.push(cv('Thème :', { size: 28, bold: true, color: '0F172A' }, [0, 100]));
+    body.push('<w:tbl><w:tblPr><w:tblW w:w="9638" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblBorders><w:top w:val="single" w:sz="18" w:space="0" w:color="16803A"/><w:left w:val="single" w:sz="18" w:space="0" w:color="16803A"/><w:bottom w:val="single" w:sz="18" w:space="0" w:color="16803A"/><w:right w:val="single" w:sz="18" w:space="0" w:color="16803A"/></w:tblBorders><w:tblCellMar><w:top w:w="160" w:type="dxa"/><w:left w:w="240" w:type="dxa"/><w:bottom w:w="160" w:type="dxa"/><w:right w:w="240" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid><w:gridCol w:w="9638"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w="9638" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="F0FDF4"/><w:vAlign w:val="center"/></w:tcPr>' +
+      para(run('Étude de faisabilité d’une entreprise de financement PAYG de l’énergie solaire en Mauritanie', { size: 30, bold: true, color: '14532D' }), { align: 'center', spacing: [40, 80], line: 320 }) +
+      para(run('Scoring de crédit · Micro-assurance · Paiement mobile · Verrouillage à distance (IoT)', { size: 19, color: '475569' }), { align: 'center', spacing: [0, 40] }) + '</w:tc></w:tr></w:tbl>');
+    if (logo) body.push(para(drawing(logo, 3.4, 'Logo Solar PAYG Mauritanie'), { align: 'center', spacing: [280, 200] }));
+    else body.push(para('', { spacing: [200, 100] }));
+    body.push(cv('Elaboré par :', { size: 22, italic: true, color: '475569' }, [300, 80], 'left').replace('<w:pPr>', '<w:pPr><w:ind w:left="1100"/>'));
+    const team = (a.team && a.team.length ? a.team : []);
+    (team.length ? team : ['']).forEach((n) => body.push(para(run('-  ', { size: 24, bold: true }) + run(n, { size: 24, color: '0F172A' }), { ind: [2600, 0], spacing: [0, 60] })));
+    body.push(cv('Encadré par :', { size: 22, italic: true, color: '475569' }, [420, 80], 'left').replace('<w:pPr>', '<w:pPr><w:ind w:left="1100"/>'));
+    body.push(para(run('Dr.  ', { size: 24, color: '0F172A' }), { ind: [2600, 0], spacing: [0, 60] }));
+    body.push(para(run(' ', { size: 24 }), { ind: [2600, 0], spacing: [0, 160] }));
+    { const d = new Date(), y = d.getFullYear(), st = d.getMonth() >= 8 ? y : y - 1;
+      body.push(cv('Année Universitaire : ' + st + '–' + (st + 1), { size: 22, bold: true, italic: true, color: '0F172A' }, [700, 0])); }
     // fin de section 1 (page de garde, sans en-tête ni pied de page)
-    body.push(para('', { sect: '<w:sectPr><w:headerReference w:type="default" r:id="rIdHdrEmpty"/><w:footerReference w:type="default" r:id="rIdFtrEmpty"/><w:type w:val="nextPage"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1000" w:right="1134" w:bottom="1000" w:left="1134" w:header="560" w:footer="480" w:gutter="0"/></w:sectPr>' }));
+    body.push(para('', { sect: '<w:sectPr><w:headerReference w:type="default" r:id="rIdHdrEmpty"/><w:footerReference w:type="default" r:id="rIdFtrEmpty"/><w:type w:val="nextPage"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="900" w:right="1134" w:bottom="900" w:left="1134" w:header="560" w:footer="480" w:gutter="0"/><w:pgBorders w:offsetFrom="page"><w:top w:val="double" w:sz="18" w:space="24" w:color="1D6FB8"/><w:left w:val="double" w:sz="18" w:space="24" w:color="1D6FB8"/><w:bottom w:val="double" w:sz="18" w:space="24" w:color="1D6FB8"/><w:right w:val="double" w:sz="18" w:space="24" w:color="1D6FB8"/></w:pgBorders></w:sectPr>' }));
 
     /* =================== SOMMAIRE (placeholder, rempli à la fin) =================== */
     const tocIndex = body.length; body.push('');
