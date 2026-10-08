@@ -87,6 +87,7 @@
   function paint() {
     const root = $('statsRoot'); if (!root) return;
     const nav = $('navStats'); if (nav) nav.classList.toggle('hidden', !isAdmin());
+    document.querySelectorAll('[data-export="pptx"]').forEach((b) => b.classList.toggle('hidden', !isAdmin())); // bouton PowerPoint : superviseur principal (MDA) uniquement
     const sec = $('module-stats'); if (sec) sec.classList.toggle('hidden', !isAdmin());
     const tl = $('navStatsTxt'); if (tl) tl.textContent = t().nav;
     if (!isAdmin()) { killCharts(); root.innerHTML = ''; return; }

@@ -416,6 +416,7 @@
     } else if (kind === 'docx') {
       exportDoc('docx', sheets);
     } else if (kind === 'pptx') {
+      if (!(window.PaygAuth && window.PaygAuth.isAdmin && window.PaygAuth.isAdmin())) return; // PowerPoint : superviseur principal (MDA) uniquement
       exportDoc('pptx', sheets);
     } else if (kind === 'pdf') {
       let h = '<h1 style="font-size:18px;margin:0 0 4px">' + esc(t().printTitle) + '</h1><p style="font-size:11px;margin:0 0 12px">' + esc(E.MODEL_DATE) + ' — ' + esc(lang() === 'ar' ? 'جميع البيانات مصنفة: فعلية / تقدير / فرضية / محاكاة.' : 'chaque donnée est classée : enquête / estimation / hypothèse / simulation.') + '</p>';
